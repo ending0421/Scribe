@@ -1,3 +1,9 @@
+//! Output modules for writing log data.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::Result;
 
 pub trait LogOutput: Send + Sync {

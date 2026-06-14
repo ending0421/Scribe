@@ -1,7 +1,13 @@
+//! Cleanup policies for old log files.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::storage::LogLevel;
 use crate::Result;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::SystemTime;
 
 /// Policy for cleaning up old log files.
@@ -161,14 +167,12 @@ impl CleanupPolicy {
 
         // 第一步：删除超过保留期的文件
         for file in files {
-            if self.should_delete_by_time(file) {
-                if let Ok(_) = std::fs::remove_file(&file.path) {
-                    report.files_deleted += 1;
-                    report.bytes_freed += file.size as u64;
-                    report
-                        .deleted_files
-                        .push(file.path.to_string_lossy().to_string());
-                }
+            if self.should_delete_by_time(file) && std::fs::remove_file(&file.path).is_ok() {
+                report.files_deleted += 1;
+                report.bytes_freed += file.size as u64;
+                report
+                    .deleted_files
+                    .push(file.path.to_string_lossy().to_string());
             }
         }
 
@@ -196,7 +200,7 @@ impl CleanupPolicy {
                     break;
                 }
 
-                if let Ok(_) = std::fs::remove_file(&file.path) {
+                if std::fs::remove_file(&file.path).is_ok() {
                     report.files_deleted += 1;
                     report.bytes_freed += file.size as u64;
                     report
@@ -240,6 +244,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
+    use std::path::Path;
     use std::time::Duration;
 
     // Helper function to create a test file

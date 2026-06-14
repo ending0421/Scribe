@@ -52,6 +52,7 @@ static AUTO_FLUSH_HANDLE: OnceCell<Mutex<Option<thread::JoinHandle<()>>>> = Once
 
 struct ScribeInstance {
     manager: DoubleBufferManager,
+    #[allow(dead_code)]
     config: ScribeConfig,
 }
 
@@ -138,7 +139,7 @@ fn stop_auto_flush() {
 ///
 /// `log_dir` and `config_json` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char) -> i32 {
+pub unsafe extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char) -> i32 {
     if log_dir.is_null() {
         return -1;
     }
@@ -147,18 +148,14 @@ pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char
         return -6;
     }
 
-    let log_dir_str = unsafe {
-        match CStr::from_ptr(log_dir).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let log_dir_str = match CStr::from_ptr(log_dir).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
-    let config_str = unsafe {
-        match CStr::from_ptr(config_json).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let config_str = match CStr::from_ptr(config_json).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
     // 解析配置
@@ -170,7 +167,7 @@ pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char
     let log_path = std::path::PathBuf::from(log_dir_str);
 
     // 创建目录
-    if let Err(_) = std::fs::create_dir_all(&log_path) {
+    if std::fs::create_dir_all(&log_path).is_err() {
         return -3;
     }
 
@@ -227,23 +224,23 @@ pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char
 ///
 /// `label` and `message` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_log(level: i32, label: *const c_char, message: *const c_char) -> i32 {
+pub unsafe extern "C" fn scribe_log(
+    level: i32,
+    label: *const c_char,
+    message: *const c_char,
+) -> i32 {
     if label.is_null() || message.is_null() {
         return -2;
     }
 
-    let label_str = unsafe {
-        match CStr::from_ptr(label).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let label_str = match CStr::from_ptr(label).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
-    let message_str = unsafe {
-        match CStr::from_ptr(message).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let message_str = match CStr::from_ptr(message).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
     let log_level = match level {
@@ -270,7 +267,7 @@ pub extern "C" fn scribe_log(level: i32, label: *const c_char, message: *const c
         None => return -1,
     };
 
-    let mut instance = match scribe.lock() {
+    let instance = match scribe.lock() {
         Ok(i) => i,
         Err(_) => return -1,
     };

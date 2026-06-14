@@ -36,7 +36,5 @@ pub mod manager;
 pub mod recovery;
 
 pub use buffer::MmapBuffer;
-pub use cleanup::{CleanupPolicy, CleanupReport, LogFile};
 pub use frame::{LogFrame, LogLevel};
 pub use manager::DoubleBufferManager;
-pub use recovery::{Recovery, RecoveryReport};

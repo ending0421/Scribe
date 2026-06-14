@@ -28,5 +28,4 @@
 pub mod router;
 pub mod stage;
 
-pub use router::Router;
 pub use stage::{Fallback, LogBatch, PipelineStage};

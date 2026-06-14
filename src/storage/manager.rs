@@ -181,7 +181,7 @@ impl DoubleBufferManager {
     pub fn swap_buffers(&self) -> crate::Result<()> {
         // 原子交换 active_index
         let old_idx = self.active_index.fetch_xor(1, Ordering::AcqRel);
-        let new_idx = old_idx ^ 1;
+        let _new_idx = old_idx ^ 1;
 
         // 自旋等待旧 buffer 的所有写入者完成
         while self.active_writers[old_idx as usize].load(Ordering::Acquire) > 0 {

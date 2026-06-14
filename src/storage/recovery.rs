@@ -1,4 +1,9 @@
-use byteorder::{LittleEndian, ReadBytesExt};
+//! Recovery utilities for corrupted log files.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::fs::{self, File};
@@ -6,7 +11,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::storage::frame::LogFrame;
-use crate::{Result, ScribeError};
+use crate::Result;
 
 const MAGIC_HEADER: u32 = 0xFEEDC0DE;
 const MIN_FRAME_SIZE: usize = 25; // Magic(4) + Length(4) + Timestamp(8) + Level(1) + TagLen(2) + MsgLen(4) + CRC(4)
@@ -108,7 +113,7 @@ impl Recovery {
             ]) as usize;
 
             // 验证 Frame Length 的合理性
-            if frame_length < MIN_FRAME_SIZE || frame_length > 1024 * 1024 {
+            if !(MIN_FRAME_SIZE..=1024 * 1024).contains(&frame_length) {
                 // 帧长度不合理，跳过此 Magic
                 offset += 1;
                 continue;
@@ -225,7 +230,7 @@ impl Recovery {
                 buffer[offset + 7],
             ]) as usize;
 
-            if frame_length < MIN_FRAME_SIZE || frame_length > 1024 * 1024 {
+            if !(MIN_FRAME_SIZE..=1024 * 1024).contains(&frame_length) {
                 offset += 1;
                 continue;
             }

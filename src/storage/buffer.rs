@@ -36,6 +36,7 @@ pub struct MmapBuffer {
     mmap: MmapMut,
     position: AtomicUsize,
     capacity: usize,
+    #[allow(dead_code)]
     file_path: PathBuf,
 }
 
@@ -69,6 +70,7 @@ impl MmapBuffer {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&file_path)?;
 
         // 设置文件大小

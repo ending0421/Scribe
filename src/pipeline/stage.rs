@@ -1,3 +1,9 @@
+//! Pipeline stage abstractions.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::Result;
 
 /// Fallback strategy when a pipeline stage fails.
@@ -101,7 +107,7 @@ pub trait PipelineStage: Send + Sync {
     /// # Returns
     ///
     /// A Fallback strategy indicating how to proceed.
-    fn on_error(&self, data: LogBatch, _error: crate::ScribeError) -> Fallback {
+    fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
         // 默认实现：跳过失败的 Stage
         Fallback::Skip
     }
@@ -249,7 +255,7 @@ mod tests {
             }
         }
 
-        fn on_error(&self, data: LogBatch, error: crate::ScribeError) -> Fallback {
+        fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
             if let Some(ref fallback) = self.fallback {
                 match fallback {
                     Fallback::Abort => Fallback::Abort,

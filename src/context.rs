@@ -3,10 +3,12 @@
 //! 注意：这些 API 已被简化的 FFI API 取代。
 //! 直接使用 scribe_log() FFI 函数即可。
 
+#![allow(dead_code)]
+
 use std::cell::RefCell;
 
 thread_local! {
-    static THREAD_LABEL: RefCell<Option<String>> = RefCell::new(None);
+    static THREAD_LABEL: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
 const MAX_LABEL_LENGTH: usize = 23;

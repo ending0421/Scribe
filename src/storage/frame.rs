@@ -555,10 +555,9 @@ mod tests {
         let mut cursor = Cursor::new(&mut serialized[data_len - 4..]);
         cursor.write_u32::<LittleEndian>(crc).unwrap();
 
+        let frame_length = data_len as u32;
         let mut cursor = Cursor::new(&mut serialized[4..8]);
-        cursor
-            .write_u32::<LittleEndian>(serialized.len() as u32)
-            .unwrap();
+        cursor.write_u32::<LittleEndian>(frame_length).unwrap();
 
         // 反序列化应该优雅处理（使用 from_utf8_lossy）
         let deserialized = LogFrame::deserialize(&serialized).unwrap();
@@ -718,13 +717,15 @@ mod tests {
 
     #[test]
     fn test_frame_length_with_different_sizes() {
+        let long_tag = "x".repeat(100);
+        let long_msg = "y".repeat(1000);
         let test_cases = vec![
             ("", ""),
             ("a", "b"),
             ("short", "message"),
             ("longer_tag", "longer message with more content"),
             ("🚀", "🌟✨"),
-            (&"x".repeat(100), &"y".repeat(1000)),
+            (long_tag.as_str(), long_msg.as_str()),
         ];
 
         for (tag, msg) in test_cases {

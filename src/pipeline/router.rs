@@ -1,3 +1,9 @@
+//! Router for conditional pipeline selection.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use super::stage::{LogBatch, Pipeline};
 use crate::storage::LogFrame;
 use crate::Result;
@@ -225,7 +231,7 @@ mod tests {
         assert!(result.is_ok());
         // 验证返回原始 batch
         let output = result.unwrap();
-        assert_eq!(output.ids.len(), 3);
+        assert_eq!(output.data.len(), 3);
     }
 
     #[test]
@@ -281,7 +287,7 @@ mod tests {
 
         let result = router.dispatch(&frame, batch);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().ids.len(), 0);
+        assert_eq!(result.unwrap().data.len(), 0);
     }
 
     #[test]

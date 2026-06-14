@@ -1,3 +1,9 @@
+//! Stack trace and caller detection utilities.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use std::backtrace::Backtrace;
 
 #[derive(Debug, Clone, PartialEq)]

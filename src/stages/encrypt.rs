@@ -1,7 +1,13 @@
+//! Encryption stage for log data.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::pipeline::{Fallback, LogBatch, PipelineStage};
 use crate::Result;
 use chacha20poly1305::{
-    aead::{Aead, KeyInit, OsRng},
+    aead::{Aead, KeyInit},
     ChaCha20Poly1305, Nonce,
 };
 
@@ -49,7 +55,7 @@ impl PipelineStage for EncryptStage {
         }
     }
 
-    fn on_error(&self, data: LogBatch, _error: crate::ScribeError) -> Fallback {
+    fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
         // 加密失败时跳过，使用原始数据（但应该告警）
         eprintln!("WARNING: Encryption failed, using unencrypted data");
         Fallback::Skip
