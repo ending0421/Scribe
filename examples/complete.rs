@@ -14,8 +14,8 @@
 //! ```
 
 use scribe::{
-    Config, DoubleBufferManager, LogFrame, LogLevel, LogBatch,
-    ScribeMetrics, CleanupPolicy, CleanupReport,
+    CleanupPolicy, CleanupReport, Config, DoubleBufferManager, LogBatch, LogFrame, LogLevel,
+    ScribeMetrics,
 };
 use std::path::PathBuf;
 use std::time::Duration;
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 配置参数
     let config = Config {
-        buffer_size: 4 * 1024 * 1024,  // 4MB 缓冲区
+        buffer_size: 4 * 1024 * 1024,    // 4MB 缓冲区
         max_file_size: 10 * 1024 * 1024, // 10MB 单文件上限
         ..Default::default()
     };
@@ -126,8 +126,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  写入统计:");
     println!("    - 总写入次数: {}", snapshot.writes_count);
     println!("    - 失败次数: {}", snapshot.writes_failed);
-    println!("    - 成功率: {:.2}%", snapshot.write_success_rate() * 100.0);
-    println!("    - 总字节数: {} bytes ({:.2} KB)",
+    println!(
+        "    - 成功率: {:.2}%",
+        snapshot.write_success_rate() * 100.0
+    );
+    println!(
+        "    - 总字节数: {} bytes ({:.2} KB)",
         snapshot.bytes_written,
         snapshot.bytes_written as f64 / 1024.0
     );
@@ -144,10 +148,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if snapshot.writes_count > 0 {
         println!("\n  性能统计:");
         if snapshot.compression_time_us > 0 {
-            println!("    - 平均压缩时间: {:.2} μs", snapshot.avg_compression_time_us());
+            println!(
+                "    - 平均压缩时间: {:.2} μs",
+                snapshot.avg_compression_time_us()
+            );
         }
         if snapshot.encryption_time_us > 0 {
-            println!("    - 平均加密时间: {:.2} μs", snapshot.avg_encryption_time_us());
+            println!(
+                "    - 平均加密时间: {:.2} μs",
+                snapshot.avg_encryption_time_us()
+            );
         }
         if snapshot.io_time_us > 0 {
             println!("    - 平均 I/O 时间: {:.2} μs", snapshot.avg_io_time_us());
@@ -160,8 +170,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 配置清理策略：最多保留 5MB，保留最近 7 天
     let cleanup_policy = CleanupPolicy {
-        max_total_size: Some(5 * 1024 * 1024),  // 5MB
-        max_age: Some(Duration::from_secs(7 * 24 * 60 * 60)),  // 7 天
+        max_total_size: Some(5 * 1024 * 1024),                // 5MB
+        max_age: Some(Duration::from_secs(7 * 24 * 60 * 60)), // 7 天
         min_free_space: None,
     };
 
@@ -175,7 +185,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("\n  清理报告:");
             println!("    - 扫描文件数: {}", report.files_scanned);
             println!("    - 删除文件数: {}", report.files_deleted);
-            println!("    - 释放空间: {} bytes ({:.2} KB)",
+            println!(
+                "    - 释放空间: {} bytes ({:.2} KB)",
                 report.bytes_freed,
                 report.bytes_freed as f64 / 1024.0
             );
@@ -221,7 +232,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  日志文件列表:");
         for entry in files {
             if let Ok(metadata) = entry.metadata() {
-                println!("    - {}: {} bytes",
+                println!(
+                    "    - {}: {} bytes",
                     entry.file_name().to_string_lossy(),
                     metadata.len()
                 );

@@ -9,12 +9,14 @@ fn main() {
     // 创建配置
     let config = Config::default()
         .with_log_dir(PathBuf::from("/tmp/scribe_example"))
-        .with_max_total_size(10 * 1024 * 1024)  // 10MB
+        .with_max_total_size(10 * 1024 * 1024) // 10MB
         .with_retention_days(3);
 
-    println!("Config: log_dir={:?}, max_size={}MB",
-             config.log_dir,
-             config.max_total_size / 1024 / 1024);
+    println!(
+        "Config: log_dir={:?}, max_size={}MB",
+        config.log_dir,
+        config.max_total_size / 1024 / 1024
+    );
 
     // 创建日志帧
     let frame = LogFrame::new(
@@ -23,10 +25,10 @@ fn main() {
         "This is a test log message".to_string(),
     );
 
-    println!("Created log frame: level={:?}, tag={}, message={}",
-             frame.level,
-             frame.tag,
-             frame.message);
+    println!(
+        "Created log frame: level={:?}, tag={}, message={}",
+        frame.level, frame.tag, frame.message
+    );
 
     // 序列化
     match frame.serialize() {
