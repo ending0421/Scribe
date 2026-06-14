@@ -247,6 +247,30 @@ impl DoubleBufferManager {
         self.worker_handle = Some(handle);
         Ok(())
     }
+
+    /// Writes a LogFrame to the active buffer.
+    ///
+    /// This is a high-level convenience method that serializes the frame
+    /// and writes it to the currently active buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame` - The LogFrame to write
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Successfully written
+    /// * `Err(ScribeError)` - If serialization or write fails
+    pub fn write(&self, frame: &crate::storage::LogFrame) -> crate::Result<()> {
+        let data = frame.serialize()?;
+        let (buffer, idx) = self.get_active_buffer();
+
+        self.increment_active_writers(idx);
+        let result = buffer.write(&data);
+        self.decrement_active_writers(idx);
+
+        result.map(|_| ())
+    }
 }
 
 #[cfg(test)]

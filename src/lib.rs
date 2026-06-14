@@ -181,14 +181,15 @@ pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char
 
     // 根据配置注册 ConsoleSink
     if config.enable_console {
-        let console_sink = ConsoleSink::new().with_min_level(match config.min_console_level {
+        let min_level = match config.min_console_level {
             0 => LogLevel::Verbose,
             1 => LogLevel::Debug,
             2 => LogLevel::Info,
             3 => LogLevel::Warn,
             4 => LogLevel::Error,
             _ => LogLevel::Debug,
-        });
+        };
+        let console_sink = ConsoleSink::with_min_level(min_level);
         register_sink(Box::new(console_sink));
     }
 
@@ -274,7 +275,7 @@ pub extern "C" fn scribe_log(level: i32, label: *const c_char, message: *const c
         Err(_) => return -1,
     };
 
-    let frame = LogFrame::new(log_level, Some(label_str), message_str);
+    let frame = LogFrame::new(log_level, label_str.to_string(), message_str.to_string());
 
     match instance.manager.write(&frame) {
         Ok(_) => 0,
@@ -327,12 +328,14 @@ pub extern "C" fn scribe_get_stats() -> *const c_char {
     let snapshot = metrics.snapshot();
 
     let json = serde_json::json!({
-        "log_writes": snapshot.log_writes,
-        "buffer_flushes": snapshot.buffer_flushes,
-        "buffer_swaps": snapshot.buffer_swaps,
+        "writes_count": snapshot.writes_count,
+        "writes_failed": snapshot.writes_failed,
         "bytes_written": snapshot.bytes_written,
-        "flush_errors": snapshot.flush_errors,
-        "write_errors": snapshot.write_errors,
+        "flush_count": snapshot.flush_count,
+        "buffer_full_count": snapshot.buffer_full_count,
+        "disk_full_count": snapshot.disk_full_count,
+        "compression_errors": snapshot.compression_errors,
+        "encryption_errors": snapshot.encryption_errors,
     });
 
     match CString::new(json.to_string()) {
