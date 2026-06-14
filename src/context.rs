@@ -145,7 +145,7 @@ mod tests {
     fn test_tag_length_boundary() {
         // Test exact boundary
         let max_label = "a".repeat(MAX_LABEL_LENGTH);
-        assert!(validate_label(&max_tag).is_ok());
+        assert!(validate_label(&max_label).is_ok());
 
         let over_max = "a".repeat(MAX_LABEL_LENGTH + 1);
         assert!(validate_label(&over_max).is_err());
@@ -173,7 +173,7 @@ mod tests {
     fn test_unicode_tag_length() {
         // Unicode characters count as multiple bytes
         let unicode_label = "测试"; // 6 bytes, 2 characters
-        assert!(validate_label(unicode_tag).is_ok());
+        assert!(validate_label(unicode_label).is_ok());
 
         // Create a label that's exactly MAX_LABEL_LENGTH bytes with unicode
         let long_unicode = "测".repeat(12); // 36 bytes - should fail
@@ -186,9 +186,9 @@ mod tests {
             .map(|i| {
                 thread::spawn(move || {
                     let label = format!("THREAD_{}", i);
-                    set_thread_label(Some(tag.clone()));
+                    set_thread_label(Some(label.clone()));
                     thread::sleep(std::time::Duration::from_millis(10));
-                    assert_eq!(get_thread_label(), Some(tag));
+                    assert_eq!(get_thread_label(), Some(label));
                 })
             })
             .collect();
