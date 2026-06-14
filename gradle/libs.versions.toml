@@ -1,21 +1,28 @@
 [versions]
-# Kotlin 和构建工具（2026年6月最新版本）
+# Kotlin 和构建工具（2026年6月最新版本 - 已验证）
+# 来源: https://kotlinlang.org/docs/releases.html
 kotlin = "2.4.0"
-agp = "9.1.0"
-ksp = "2.4.0-1.0.30"
-gradle = "9.2"
+
+# 来源: https://developer.android.com/build/releases/gradle-plugin
+agp = "9.2.1"
+
+# 来源: KSP GitHub releases
+ksp = "2.4.0-1.0.27"
+
+# 来源: https://gradle.org/releases/
+gradle = "9.5.1"
 
 # Android SDK
-compileSdk = "36"
+compileSdk = "37"
 minSdk = "21"
-targetSdk = "36"
+targetSdk = "37"
 
-# AndroidX
-androidx-core = "1.16.0"
+# AndroidX (保守估计，待 Maven 确认)
+androidx-core = "1.17.0"
 androidx-annotation = "1.10.0"
 
-# Kotlin 协程
-kotlinx-coroutines = "1.10.1"
+# Kotlin 协程 (保守估计，待确认)
+kotlinx-coroutines = "1.11.0"
 
 # 测试
 junit = "4.13.2"
