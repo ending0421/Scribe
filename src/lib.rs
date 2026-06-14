@@ -20,31 +20,31 @@
 //! const char* stats = scribe_get_stats();
 //! ```
 
+use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
-use once_cell::sync::OnceCell;
 use std::thread;
 use std::time::Duration;
 
-mod storage;
-mod error;
-mod pipeline;
-mod stages;
-mod outputs;
-mod platform;
-mod config;
-mod metrics;
 mod caller;
+mod config;
 mod context;
-mod sink;
+mod error;
 mod macros;
+mod metrics;
+mod outputs;
+mod pipeline;
+mod platform;
+mod sink;
+mod stages;
+mod storage;
 
-pub use error::{Result, ScribeError};
-pub use storage::{DoubleBufferManager, LogFrame, LogLevel, MmapBuffer};
 pub use config::ScribeConfig;
+pub use error::{Result, ScribeError};
 pub use metrics::{ErrorType, MetricsSnapshot, ScribeMetrics};
-pub use sink::{clear_sinks, registry, register_sink, ConsoleSink, LogSink, SinkRegistry};
+pub use sink::{clear_sinks, register_sink, registry, ConsoleSink, LogSink, SinkRegistry};
+pub use storage::{DoubleBufferManager, LogFrame, LogLevel, MmapBuffer};
 
 static GLOBAL_SCRIBE: OnceCell<Arc<Mutex<ScribeInstance>>> = OnceCell::new();
 static GLOBAL_METRICS: OnceCell<Arc<ScribeMetrics>> = OnceCell::new();
@@ -64,7 +64,9 @@ impl Drop for ScribeInstance {
 }
 
 fn get_metrics() -> Arc<ScribeMetrics> {
-    GLOBAL_METRICS.get_or_init(|| Arc::new(ScribeMetrics::new())).clone()
+    GLOBAL_METRICS
+        .get_or_init(|| Arc::new(ScribeMetrics::new()))
+        .clone()
 }
 
 /// 启动后台自动刷新线程
@@ -137,10 +139,7 @@ fn stop_auto_flush() {
 ///
 /// `log_dir` and `config_json` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_init(
-    log_dir: *const c_char,
-    config_json: *const c_char,
-) -> i32 {
+pub extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char) -> i32 {
     if log_dir.is_null() {
         return -1;
     }
@@ -228,11 +227,7 @@ pub extern "C" fn scribe_init(
 ///
 /// `label` and `message` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_log(
-    level: i32,
-    label: *const c_char,
-    message: *const c_char,
-) -> i32 {
+pub extern "C" fn scribe_log(level: i32, label: *const c_char, message: *const c_char) -> i32 {
     if label.is_null() || message.is_null() {
         return -2;
     }

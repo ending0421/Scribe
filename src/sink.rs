@@ -1,6 +1,6 @@
 use crate::LogLevel;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 /// LogRecord - 日志记录结构
 #[derive(Debug, Clone)]
@@ -48,17 +48,15 @@ impl LogSink for ConsoleSink {
         }
 
         let context = record.context.as_deref().unwrap_or("Scribe");
-        let thread_info = record.thread_name
+        let thread_info = record
+            .thread_name
             .as_ref()
             .map(|t| format!("[{}] ", t))
             .unwrap_or_default();
 
         println!(
             "{:?} {}{}: {}",
-            record.level,
-            thread_info,
-            context,
-            record.message
+            record.level, thread_info, context, record.message
         );
     }
 

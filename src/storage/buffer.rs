@@ -76,8 +76,7 @@ impl MmapBuffer {
 
         // 创建 mmap
         let mmap = unsafe {
-            MmapMut::map_mut(&file)
-                .map_err(|e| crate::ScribeError::Mmap(e.to_string()))?
+            MmapMut::map_mut(&file).map_err(|e| crate::ScribeError::Mmap(e.to_string()))?
         };
 
         Ok(Self {
@@ -414,7 +413,7 @@ mod tests {
 
         assert!(result.is_err());
         match result {
-            Err(crate::ScribeError::BufferFull) => {},
+            Err(crate::ScribeError::BufferFull) => {}
             _ => panic!("Expected BufferFull error"),
         }
 

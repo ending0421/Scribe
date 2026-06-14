@@ -1,4 +1,4 @@
-use crate::pipeline::{PipelineStage, LogBatch, Fallback};
+use crate::pipeline::{Fallback, LogBatch, PipelineStage};
 use crate::Result;
 use chacha20poly1305::{
     aead::{Aead, KeyInit, OsRng},

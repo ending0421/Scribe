@@ -1,9 +1,9 @@
-use std::fs::{self, File};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
 use byteorder::{LittleEndian, ReadBytesExt};
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use crate::storage::frame::LogFrame;
 use crate::{Result, ScribeError};
@@ -368,7 +368,8 @@ mod tests {
         // 写入一个不完整的帧（只写入一半）
         let frame2 = create_test_frame(LogLevel::Debug, "test", "incomplete_frame");
         let serialized2 = frame2.serialize().unwrap();
-        file.write_all(&serialized2[..serialized2.len() / 2]).unwrap();
+        file.write_all(&serialized2[..serialized2.len() / 2])
+            .unwrap();
 
         drop(file);
 
@@ -389,11 +390,8 @@ mod tests {
             let mut file = File::create(&mmap_path).unwrap();
 
             for j in 0..5 {
-                let frame = create_test_frame(
-                    LogLevel::Info,
-                    "test",
-                    &format!("file{}_frame{}", i, j),
-                );
+                let frame =
+                    create_test_frame(LogLevel::Info, "test", &format!("file{}_frame{}", i, j));
                 file.write_all(&frame.serialize().unwrap()).unwrap();
             }
         }

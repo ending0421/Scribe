@@ -43,8 +43,8 @@ impl LogOutput for DiskOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::{NamedTempFile, TempDir};
     use std::os::unix::fs::PermissionsExt;
+    use tempfile::{NamedTempFile, TempDir};
 
     #[test]
     fn test_disk_output() {

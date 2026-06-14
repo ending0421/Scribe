@@ -157,7 +157,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  清理统计:");
     println!("    - 清理次数: {}", snapshot.cleanup_count);
     println!("    - 删除文件: {}", snapshot.files_deleted);
-    println!("    - 释放空间: {} bytes ({:.2} MB)",
+    println!(
+        "    - 释放空间: {} bytes ({:.2} MB)",
         snapshot.bytes_freed,
         snapshot.bytes_freed as f64 / (1024.0 * 1024.0)
     );
@@ -203,13 +204,15 @@ fn print_detailed_metrics(snapshot: &MetricsSnapshot) {
     println!("    总写入次数: {}", snapshot.writes_count);
     println!("    失败次数: {}", snapshot.writes_failed);
     println!("    成功率: {:.2}%", snapshot.write_success_rate() * 100.0);
-    println!("    总字节数: {} bytes ({:.2} KB)",
+    println!(
+        "    总字节数: {} bytes ({:.2} KB)",
         snapshot.bytes_written,
         snapshot.bytes_written as f64 / 1024.0
     );
 
     if snapshot.writes_count > 0 {
-        println!("    平均每次写入: {:.2} bytes",
+        println!(
+            "    平均每次写入: {:.2} bytes",
             snapshot.bytes_written as f64 / snapshot.writes_count as f64
         );
     }
@@ -221,23 +224,32 @@ fn print_detailed_metrics(snapshot: &MetricsSnapshot) {
 
     println!("\n  【性能时间】");
     if snapshot.compression_time_us > 0 {
-        println!("    总压缩时间: {} μs ({:.2} ms)",
+        println!(
+            "    总压缩时间: {} μs ({:.2} ms)",
             snapshot.compression_time_us,
             snapshot.compression_time_us as f64 / 1000.0
         );
-        println!("    平均压缩时间: {:.2} μs", snapshot.avg_compression_time_us());
+        println!(
+            "    平均压缩时间: {:.2} μs",
+            snapshot.avg_compression_time_us()
+        );
     }
 
     if snapshot.encryption_time_us > 0 {
-        println!("    总加密时间: {} μs ({:.2} ms)",
+        println!(
+            "    总加密时间: {} μs ({:.2} ms)",
             snapshot.encryption_time_us,
             snapshot.encryption_time_us as f64 / 1000.0
         );
-        println!("    平均加密时间: {:.2} μs", snapshot.avg_encryption_time_us());
+        println!(
+            "    平均加密时间: {:.2} μs",
+            snapshot.avg_encryption_time_us()
+        );
     }
 
     if snapshot.io_time_us > 0 {
-        println!("    总 I/O 时间: {} μs ({:.2} ms)",
+        println!(
+            "    总 I/O 时间: {} μs ({:.2} ms)",
             snapshot.io_time_us,
             snapshot.io_time_us as f64 / 1000.0
         );
@@ -253,7 +265,8 @@ fn print_detailed_metrics(snapshot: &MetricsSnapshot) {
     println!("\n  【清理统计】");
     println!("    清理次数: {}", snapshot.cleanup_count);
     println!("    删除文件: {}", snapshot.files_deleted);
-    println!("    释放空间: {} bytes ({:.2} KB)",
+    println!(
+        "    释放空间: {} bytes ({:.2} KB)",
         snapshot.bytes_freed,
         snapshot.bytes_freed as f64 / 1024.0
     );
@@ -283,7 +296,10 @@ fn export_to_prometheus(snapshot: &MetricsSnapshot) {
     println!();
     println!("    # HELP scribe_buffer_full_total Number of buffer full errors");
     println!("    # TYPE scribe_buffer_full_total counter");
-    println!("    scribe_buffer_full_total {}", snapshot.buffer_full_count);
+    println!(
+        "    scribe_buffer_full_total {}",
+        snapshot.buffer_full_count
+    );
     println!("    ```");
 }
 
@@ -295,7 +311,10 @@ fn export_to_json(snapshot: &MetricsSnapshot) {
     println!("      \"writes\": {{");
     println!("        \"total\": {},", snapshot.writes_count);
     println!("        \"failed\": {},", snapshot.writes_failed);
-    println!("        \"success_rate\": {:.4}", snapshot.write_success_rate());
+    println!(
+        "        \"success_rate\": {:.4}",
+        snapshot.write_success_rate()
+    );
     println!("      }},");
     println!("      \"bytes\": {{");
     println!("        \"written\": {}", snapshot.bytes_written);
@@ -304,8 +323,14 @@ fn export_to_json(snapshot: &MetricsSnapshot) {
     println!("        \"count\": {}", snapshot.flush_count);
     println!("      }},");
     println!("      \"performance\": {{");
-    println!("        \"avg_compression_us\": {:.2},", snapshot.avg_compression_time_us());
-    println!("        \"avg_encryption_us\": {:.2},", snapshot.avg_encryption_time_us());
+    println!(
+        "        \"avg_compression_us\": {:.2},",
+        snapshot.avg_compression_time_us()
+    );
+    println!(
+        "        \"avg_encryption_us\": {:.2},",
+        snapshot.avg_encryption_time_us()
+    );
     println!("        \"avg_io_us\": {:.2}", snapshot.avg_io_time_us());
     println!("      }},");
     println!("      \"errors\": {{");
@@ -367,14 +392,17 @@ fn benchmark_write_performance(
     println!("    总耗时: {:.2} ms", total_elapsed.as_secs_f64() * 1000.0);
     println!("    总写入: {}", snapshot.writes_count);
     println!("    失败数: {}", snapshot.writes_failed);
-    println!("    总字节: {} bytes ({:.2} KB)",
+    println!(
+        "    总字节: {} bytes ({:.2} KB)",
         snapshot.bytes_written,
         snapshot.bytes_written as f64 / 1024.0
     );
-    println!("    吞吐量: {:.2} writes/sec",
+    println!(
+        "    吞吐量: {:.2} writes/sec",
         iterations as f64 / total_elapsed.as_secs_f64()
     );
-    println!("    带宽: {:.2} KB/sec",
+    println!(
+        "    带宽: {:.2} KB/sec",
         (snapshot.bytes_written as f64 / 1024.0) / total_elapsed.as_secs_f64()
     );
 

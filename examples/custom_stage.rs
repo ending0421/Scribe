@@ -57,10 +57,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("2. 构建处理 Pipeline...\n");
 
     let pipeline = Pipeline::new()
-        .add_stage(Box::new(filter_stage))          // Stage 1: 过滤
-        .add_stage(Box::new(sanitizer_stage))       // Stage 2: 脱敏
-        .add_stage(Box::new(stats_stage))           // Stage 3: 统计
-        .add_stage(Box::new(failing_stage));        // Stage 4: 测试
+        .add_stage(Box::new(filter_stage)) // Stage 1: 过滤
+        .add_stage(Box::new(sanitizer_stage)) // Stage 2: 脱敏
+        .add_stage(Box::new(stats_stage)) // Stage 3: 统计
+        .add_stage(Box::new(failing_stage)); // Stage 4: 测试
 
     println!("  Pipeline 构建完成:");
     println!("    过滤器 -> 脱敏器 -> 统计器 -> 测试Stage\n");
@@ -69,11 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("3. 准备测试日志数据...\n");
 
     let test_logs = vec![
-        LogFrame::new(
-            LogLevel::Debug,
-            "app".to_string(),
-            "调试信息".to_string(),
-        ),
+        LogFrame::new(LogLevel::Debug, "app".to_string(), "调试信息".to_string()),
         LogFrame::new(
             LogLevel::Info,
             "auth".to_string(),
@@ -108,7 +104,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("  准备了 {} 条测试日志:", test_logs.len());
     for (i, log) in test_logs.iter().enumerate() {
-        println!("    {}. [{:?}] [{}] {}", i + 1, log.level, log.tag, log.message);
+        println!(
+            "    {}. [{:?}] [{}] {}",
+            i + 1,
+            log.level,
+            log.tag,
+            log.message
+        );
     }
     println!();
 
@@ -130,7 +132,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Ok(processed_frame) = LogFrame::deserialize(&result.data) {
                         println!("    ✓ 处理成功:");
                         println!("      原始: [{:?}] {}", log.level, log.message);
-                        println!("      处理后: [{:?}] {}", processed_frame.level, processed_frame.message);
+                        println!(
+                            "      处理后: [{:?}] {}",
+                            processed_frame.level, processed_frame.message
+                        );
                     }
                 } else {
                     println!("    ⊘ 被过滤器丢弃（级别低于 Warn）");
@@ -161,8 +166,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("6. 测试错误处理机制...\n");
 
     // 创建一个会失败的 Pipeline
-    let failing_pipeline = Pipeline::new()
-        .add_stage(Box::new(FlakyStage { fail_probability: 1.0 })); // 100% 失败
+    let failing_pipeline = Pipeline::new().add_stage(Box::new(FlakyStage {
+        fail_probability: 1.0,
+    })); // 100% 失败
 
     println!("  测试 Skip Fallback 策略:");
     let test_log = LogFrame::new(LogLevel::Error, "test".to_string(), "测试".to_string());

@@ -180,7 +180,7 @@ macro_rules! scribe_tag_e {
 
 #[cfg(test)]
 mod tests {
-    use crate::{tree, tag, LogLevel};
+    use crate::{tag, tree, LogLevel};
 
     #[test]
     fn test_verbose_macro() {

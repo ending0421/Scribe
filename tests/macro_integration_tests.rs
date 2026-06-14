@@ -3,9 +3,8 @@
 //! Run with: cargo test --test macro_integration_tests
 
 use scribe::{
-    scribe_v, scribe_d, scribe_i, scribe_w, scribe_e,
-    scribe_tag_v, scribe_tag_d, scribe_tag_i, scribe_tag_w, scribe_tag_e,
-    tag, tree,
+    scribe_d, scribe_e, scribe_i, scribe_tag_d, scribe_tag_e, scribe_tag_i, scribe_tag_v,
+    scribe_tag_w, scribe_v, scribe_w, tag, tree,
 };
 
 #[test]
@@ -231,9 +230,9 @@ fn test_explicit_tag_overrides_planted() {
 
 #[test]
 fn test_concurrent_logging() {
-    use std::thread;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::Arc;
+    use std::thread;
 
     let counter = Arc::new(AtomicU32::new(0));
     let handles: Vec<_> = (0..5)

@@ -1,6 +1,6 @@
 //! Pipeline 使用示例
 
-use scribe::pipeline::{Pipeline, LogBatch};
+use scribe::pipeline::{LogBatch, Pipeline};
 use scribe::stages::{CompressStage, EncryptStage};
 
 fn main() {
@@ -20,8 +20,10 @@ fn main() {
     match pipeline.process(batch) {
         Ok(result) => {
             println!("Processed size: {} bytes", result.size());
-            println!("Compression ratio: {:.2}x",
-                     data.len() as f32 / result.size() as f32);
+            println!(
+                "Compression ratio: {:.2}x",
+                data.len() as f32 / result.size() as f32
+            );
         }
         Err(e) => {
             eprintln!("Pipeline error: {}", e);

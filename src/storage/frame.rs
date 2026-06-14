@@ -240,8 +240,7 @@ impl LogFrame {
 
         // Level
         let level_u8 = cursor.read_u8()?;
-        let level = LogLevel::from_u8(level_u8)
-            .ok_or(crate::ScribeError::InvalidFrame)?;
+        let level = LogLevel::from_u8(level_u8).ok_or(crate::ScribeError::InvalidFrame)?;
 
         // Tag
         let tag_len = cursor.read_u16::<LittleEndian>()? as usize;
@@ -495,7 +494,11 @@ mod tests {
     #[test]
     fn test_newline_characters() {
         let msg_with_newlines = "Line 1\nLine 2\r\nLine 3\rLine 4";
-        let frame = LogFrame::new(LogLevel::Info, "tag".to_string(), msg_with_newlines.to_string());
+        let frame = LogFrame::new(
+            LogLevel::Info,
+            "tag".to_string(),
+            msg_with_newlines.to_string(),
+        );
         let serialized = frame.serialize().unwrap();
         let deserialized = LogFrame::deserialize(&serialized).unwrap();
         assert_eq!(deserialized.message, msg_with_newlines);
@@ -553,7 +556,9 @@ mod tests {
         cursor.write_u32::<LittleEndian>(crc).unwrap();
 
         let mut cursor = Cursor::new(&mut serialized[4..8]);
-        cursor.write_u32::<LittleEndian>(serialized.len() as u32).unwrap();
+        cursor
+            .write_u32::<LittleEndian>(serialized.len() as u32)
+            .unwrap();
 
         // 反序列化应该优雅处理（使用 from_utf8_lossy）
         let deserialized = LogFrame::deserialize(&serialized).unwrap();
@@ -665,7 +670,7 @@ mod tests {
         let result = LogFrame::deserialize(&serialized);
         assert!(result.is_err());
         match result {
-            Err(crate::ScribeError::InvalidFrame) => {},
+            Err(crate::ScribeError::InvalidFrame) => {}
             _ => panic!("Expected InvalidFrame error"),
         }
     }
@@ -784,7 +789,7 @@ mod tests {
         let result = LogFrame::deserialize(&serialized);
         assert!(result.is_err());
         match result {
-            Err(crate::ScribeError::CrcMismatch) => {},
+            Err(crate::ScribeError::CrcMismatch) => {}
             _ => panic!("Expected CrcMismatch error"),
         }
     }
@@ -826,7 +831,7 @@ mod tests {
         let result = LogFrame::deserialize(&serialized);
         assert!(result.is_err());
         match result {
-            Err(crate::ScribeError::InvalidFrame) => {},
+            Err(crate::ScribeError::InvalidFrame) => {}
             _ => panic!("Expected InvalidFrame error for invalid log level"),
         }
     }

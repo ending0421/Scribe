@@ -190,19 +190,13 @@ mod tests {
     #[test]
     fn test_extract_class_from_line_at_format() {
         let line = "at my_app::utils::Logger::log";
-        assert_eq!(
-            extract_class_from_line(line),
-            Some("Logger".to_string())
-        );
+        assert_eq!(extract_class_from_line(line), Some("Logger".to_string()));
     }
 
     #[test]
     fn test_extract_class_from_line_with_generics() {
         let line = "   5: my_app::Container<T>::process";
-        assert_eq!(
-            extract_class_from_line(line),
-            Some("Container".to_string())
-        );
+        assert_eq!(extract_class_from_line(line), Some("Container".to_string()));
     }
 
     #[test]
@@ -330,7 +324,8 @@ mod tests {
         assert!(stack.len() >= 3);
 
         // 查找 MainActivity 帧
-        let main_activity_frame = stack.iter()
+        let main_activity_frame = stack
+            .iter()
             .find(|e| e.class_name.as_deref() == Some("MainActivity"));
         assert!(main_activity_frame.is_some());
 

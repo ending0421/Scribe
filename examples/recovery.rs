@@ -11,12 +11,9 @@
 //! cargo run --example recovery
 //! ```
 
-use scribe::{
-    DoubleBufferManager, LogFrame, LogLevel,
-    Recovery, RecoveryReport,
-};
-use std::path::PathBuf;
+use scribe::{DoubleBufferManager, LogFrame, LogLevel, Recovery, RecoveryReport};
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Scribe 崩溃恢复示例 ===\n");
@@ -83,11 +80,7 @@ fn simulate_crash(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for (i, (tag, message, level)) in log_messages.iter().enumerate() {
-        let frame = LogFrame::new(
-            *level,
-            tag.to_string(),
-            format!("[{}] {}", i + 1, message),
-        );
+        let frame = LogFrame::new(*level, tag.to_string(), format!("[{}] {}", i + 1, message));
 
         let serialized = frame.serialize()?;
         let (buffer, idx) = manager.get_active_buffer();
@@ -127,7 +120,8 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
             if path.extension().and_then(|s| s.to_str()) == Some("mmap") {
                 if let Ok(metadata) = entry.metadata() {
                     log_files.push((path.clone(), metadata.len()));
-                    println!("  - 发现日志文件: {} ({} bytes)",
+                    println!(
+                        "  - 发现日志文件: {} ({} bytes)",
                         path.file_name().unwrap().to_string_lossy(),
                         metadata.len()
                     );
@@ -150,7 +144,10 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let mut total_bytes = 0;
 
     for (file_path, size) in log_files {
-        println!("\n  处理文件: {}", file_path.file_name().unwrap().to_string_lossy());
+        println!(
+            "\n  处理文件: {}",
+            file_path.file_name().unwrap().to_string_lossy()
+        );
 
         match Recovery::scan_file(&file_path) {
             Ok(report) => {
@@ -159,7 +156,10 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                 println!("    - 损坏数据: {} 条", report.frames_corrupted);
 
                 if report.frames_corrupted > 0 {
-                    println!("    ⚠ 警告: 检测到 {} 条损坏的日志", report.frames_corrupted);
+                    println!(
+                        "    ⚠ 警告: 检测到 {} 条损坏的日志",
+                        report.frames_corrupted
+                    );
                 }
 
                 total_recovered += report.frames_recovered;
@@ -170,7 +170,8 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                 if !report.recovered_frames.is_empty() {
                     println!("\n    恢复的日志内容（前 5 条）:");
                     for (i, frame) in report.recovered_frames.iter().take(5).enumerate() {
-                        println!("      {}. [{:?}] [{}] {}",
+                        println!(
+                            "      {}. [{:?}] [{}] {}",
                             i + 1,
                             frame.level,
                             frame.tag,
@@ -179,7 +180,8 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     if report.recovered_frames.len() > 5 {
-                        println!("      ... 还有 {} 条日志",
+                        println!(
+                            "      ... 还有 {} 条日志",
                             report.recovered_frames.len() - 5
                         );
                     }
@@ -192,14 +194,19 @@ fn recover_data(log_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("\n3. 恢复统计信息:");
-    println!("  总扫描字节数: {} bytes ({:.2} KB)", total_bytes, total_bytes as f64 / 1024.0);
+    println!(
+        "  总扫描字节数: {} bytes ({:.2} KB)",
+        total_bytes,
+        total_bytes as f64 / 1024.0
+    );
     println!("  成功恢复: {} 条日志", total_recovered);
     println!("  损坏数据: {} 条", total_corrupted);
 
     if total_corrupted == 0 {
         println!("\n  ✓ 所有数据完整恢复，无损坏！");
     } else {
-        let recovery_rate = (total_recovered as f64 / (total_recovered + total_corrupted) as f64) * 100.0;
+        let recovery_rate =
+            (total_recovered as f64 / (total_recovered + total_corrupted) as f64) * 100.0;
         println!("\n  恢复率: {:.2}%", recovery_rate);
     }
 

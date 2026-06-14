@@ -1,5 +1,5 @@
 use super::buffer::MmapBuffer;
-use crossbeam_channel::{bounded, Sender, Receiver};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -252,9 +252,9 @@ impl DoubleBufferManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::sync::Barrier;
     use std::time::Duration;
+    use tempfile::TempDir;
 
     #[test]
     fn test_double_buffer_swap() {
@@ -516,10 +516,12 @@ mod tests {
         let processed_clone = processed.clone();
 
         // 生成 worker 线程，计数处理的 buffer
-        manager.spawn_worker(move |data| {
-            processed_clone.fetch_add(data.len(), Ordering::SeqCst);
-            Ok(())
-        }).unwrap();
+        manager
+            .spawn_worker(move |data| {
+                processed_clone.fetch_add(data.len(), Ordering::SeqCst);
+                Ok(())
+            })
+            .unwrap();
 
         // 写入数据到 buffer 0
         let (buffer, _) = manager.get_active_buffer();
@@ -546,10 +548,12 @@ mod tests {
         let error_count_clone = error_count.clone();
 
         // 生成总是失败的 worker
-        manager.spawn_worker(move |_data| {
-            error_count_clone.fetch_add(1, Ordering::SeqCst);
-            Err(crate::ScribeError::Mmap("Simulated error".to_string()))
-        }).unwrap();
+        manager
+            .spawn_worker(move |_data| {
+                error_count_clone.fetch_add(1, Ordering::SeqCst);
+                Err(crate::ScribeError::Mmap("Simulated error".to_string()))
+            })
+            .unwrap();
 
         // 写入数据并交换
         let (buffer, _) = manager.get_active_buffer();
@@ -576,11 +580,13 @@ mod tests {
         let process_count = Arc::new(AtomicUsize::new(0));
         let process_count_clone = process_count.clone();
 
-        manager.spawn_worker(move |_data| {
-            process_count_clone.fetch_add(1, Ordering::SeqCst);
-            thread::sleep(Duration::from_millis(50)); // 模拟处理时间
-            Ok(())
-        }).unwrap();
+        manager
+            .spawn_worker(move |_data| {
+                process_count_clone.fetch_add(1, Ordering::SeqCst);
+                thread::sleep(Duration::from_millis(50)); // 模拟处理时间
+                Ok(())
+            })
+            .unwrap();
 
         // 快速交换多次
         for i in 0..5 {

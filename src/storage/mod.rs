@@ -30,13 +30,13 @@
 //! ```
 
 pub mod buffer;
+pub mod cleanup;
 pub mod frame;
 pub mod manager;
-pub mod cleanup;
 pub mod recovery;
 
 pub use buffer::MmapBuffer;
+pub use cleanup::{CleanupPolicy, CleanupReport, LogFile};
 pub use frame::{LogFrame, LogLevel};
 pub use manager::DoubleBufferManager;
-pub use cleanup::{CleanupPolicy, LogFile, CleanupReport};
 pub use recovery::{Recovery, RecoveryReport};

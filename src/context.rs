@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicPtr, Ordering};
 use std::ptr;
+use std::sync::atomic::{AtomicPtr, Ordering};
 
 const MAX_LABEL_LENGTH: usize = 128; // Configurable label length limit
 
@@ -10,9 +10,11 @@ thread_local! {
 /// 验证 Label 长度
 pub fn validate_label(tag: &str) -> crate::Result<()> {
     if tag.len() > MAX_LABEL_LENGTH {
-        return Err(crate::ScribeError::Mmap(
-            format!("Label exceeds maximum length: {} > {}", tag.len(), MAX_LABEL_LENGTH)
-        ));
+        return Err(crate::ScribeError::Mmap(format!(
+            "Label exceeds maximum length: {} > {}",
+            tag.len(),
+            MAX_LABEL_LENGTH
+        )));
     }
     Ok(())
 }
@@ -40,43 +42,23 @@ impl LabeledLogger {
     }
 
     pub fn v(&self, message: &str) {
-        crate::sink::registry().log(
-            crate::LogLevel::Verbose,
-            Some(&self.label),
-            message,
-        );
+        crate::sink::registry().log(crate::LogLevel::Verbose, Some(&self.label), message);
     }
 
     pub fn d(&self, message: &str) {
-        crate::sink::registry().log(
-            crate::LogLevel::Debug,
-            Some(&self.label),
-            message,
-        );
+        crate::sink::registry().log(crate::LogLevel::Debug, Some(&self.label), message);
     }
 
     pub fn i(&self, message: &str) {
-        crate::sink::registry().log(
-            crate::LogLevel::Info,
-            Some(&self.label),
-            message,
-        );
+        crate::sink::registry().log(crate::LogLevel::Info, Some(&self.label), message);
     }
 
     pub fn w(&self, message: &str) {
-        crate::sink::registry().log(
-            crate::LogLevel::Warn,
-            Some(&self.label),
-            message,
-        );
+        crate::sink::registry().log(crate::LogLevel::Warn, Some(&self.label), message);
     }
 
     pub fn e(&self, message: &str) {
-        crate::sink::registry().log(
-            crate::LogLevel::Error,
-            Some(&self.label),
-            message,
-        );
+        crate::sink::registry().log(crate::LogLevel::Error, Some(&self.label), message);
     }
 
     /// Sets this label as the thread-local label for all subsequent log calls
