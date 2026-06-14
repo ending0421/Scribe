@@ -1,15 +1,13 @@
 package com.scribe
 
 import androidx.annotation.Keep
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import org.json.JSONObject
 
 /**
  * Scribe - High-performance logging library
  *
- * Rust-based logging engine with crash recovery, compression, and encryption support.
+ * Simplified API with automatic management.
  */
 @Keep
 object Scribe {
@@ -25,76 +23,93 @@ object Scribe {
         ERROR(4)
     }
 
+    /**
+     * Scribe configuration
+     */
+    data class Config(
+        val autoFlushIntervalMs: Long = 5000,
+        val enableConsole: Boolean = false,
+        val minConsoleLevel: LogLevel = LogLevel.DEBUG,
+        val maxFileSizeMb: Int = 10,
+        val maxFileCount: Int = 5,
+        val compression: Boolean = true,
+        val encryption: Boolean = false
+    ) {
+        fun toJson(): String = JSONObject().apply {
+            put("auto_flush_interval_ms", autoFlushIntervalMs)
+            put("enable_console", enableConsole)
+            put("min_console_level", minConsoleLevel.value)
+            put("max_file_size_mb", maxFileSizeMb)
+            put("max_file_count", maxFileCount)
+            put("compression", compression)
+            put("encryption", encryption)
+        }.toString()
+    }
+
+    private var autoFlushJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     // 加载本地库
     init {
         System.loadLibrary("scribe")
     }
 
-    // === Native methods ===
+    // === Native methods (简化为2个核心函数) ===
 
     @JvmStatic
-    private external fun nativeInit(logDir: String): Int
+    private external fun nativeInit(logDir: String, configJson: String): Int
 
     @JvmStatic
-    private external fun nativeWrite(level: Int, label: String, message: String): Int
+    private external fun nativeLog(level: Int, label: String, message: String): Int
 
     @JvmStatic
     private external fun nativeFlush(): Int
 
     @JvmStatic
-    private external fun nativeDestroy(): Int
+    private external fun nativeGetStats(): String
 
-    @JvmStatic
-    private external fun nativeRegisterConsole(minLevel: Int): Int
-
-    @JvmStatic
-    private external fun nativeClearSinks(): Int
-
-    @JvmStatic
-    private external fun nativeSinkCount(): Int
-
-    // === Public API ===
+    // === Public API (简化为2个必需 + 2个可选) ===
 
     /**
-     * Initialize Scribe logging system
+     * Initialize Scribe with automatic management
      *
      * @param logDir Directory to store log files
+     * @param config Configuration (optional, uses defaults if null)
      * @return Result indicating success or failure
      */
     @JvmStatic
-    fun init(logDir: String): Result<Unit> = runCatching {
-        val result = nativeInit(logDir)
+    fun initialize(logDir: String, config: Config = Config()): Result<Unit> = runCatching {
+        val result = nativeInit(logDir, config.toJson())
         if (result < 0) {
-            throw ScribeException("Failed to initialize Scribe: error code $result")
+            throw ScribeException("Failed to initialize: error code $result")
         }
+
+        // 启动自动刷新
+        startAutoFlush(config.autoFlushIntervalMs)
+
+        // 注册进程退出时自动清理
+        Runtime.getRuntime().addShutdownHook(Thread {
+            shutdown()
+        })
     }
 
     /**
-     * Initialize Scribe logging system (suspend version)
-     */
-    @JvmStatic
-    suspend fun initAsync(logDir: String): Result<Unit> = withContext(Dispatchers.IO) {
-        init(logDir)
-    }
-
-    /**
-     * Write a log message
+     * Log a message (core API)
      *
      * @param level Log level
      * @param label Log label/tag
      * @param message Log message
-     * @return Result indicating success or failure
      */
     @JvmStatic
-    fun write(level: LogLevel, label: String, message: String): Result<Unit> = runCatching {
-        val result = nativeWrite(level.value, label, message)
+    fun log(level: LogLevel, label: String, message: String): Result<Unit> = runCatching {
+        val result = nativeLog(level.value, label, message)
         if (result < 0) {
-            throw ScribeException("Failed to write log: error code $result")
+            throw ScribeException("Failed to log: error code $result")
         }
     }
 
     /**
-     * Flush all buffered logs to disk
+     * Manual flush (optional, automatic flush is enabled by default)
      *
      * @return Result indicating success or failure
      */
@@ -107,99 +122,63 @@ object Scribe {
     }
 
     /**
-     * Flush logs asynchronously
-     */
-    @JvmStatic
-    suspend fun flushAsync(): Result<Unit> = withContext(Dispatchers.IO) {
-        flush()
-    }
-
-    /**
-     * Destroy and cleanup Scribe
+     * Get performance statistics (optional)
      *
-     * @return Result indicating success or failure
+     * @return JSON string with statistics
      */
     @JvmStatic
-    fun destroy(): Result<Unit> = runCatching {
-        val result = nativeDestroy()
-        if (result < 0) {
-            throw ScribeException("Failed to destroy: error code $result")
-        }
-    }
-
-    /**
-     * Register a console sink for development
-     *
-     * @param minLevel Minimum log level
-     * @return Result indicating success or failure
-     */
-    @JvmStatic
-    fun registerConsole(minLevel: LogLevel): Result<Unit> = runCatching {
-        val result = nativeRegisterConsole(minLevel.value)
-        if (result < 0) {
-            throw ScribeException("Failed to register console: error code $result")
-        }
-    }
-
-    /**
-     * Clear all registered sinks
-     *
-     * @return Result indicating success or failure
-     */
-    @JvmStatic
-    fun clearSinks(): Result<Unit> = runCatching {
-        val result = nativeClearSinks()
-        if (result < 0) {
-            throw ScribeException("Failed to clear sinks: error code $result")
-        }
-    }
-
-    /**
-     * Get the number of registered sinks
-     *
-     * @return Number of sinks
-     */
-    @JvmStatic
-    fun sinkCount(): Int = nativeSinkCount()
+    fun getStats(): String = nativeGetStats()
 
     // === Convenience methods ===
 
     @JvmStatic
     fun v(label: String, message: String) {
-        write(LogLevel.VERBOSE, label, message)
+        log(LogLevel.VERBOSE, label, message)
     }
 
     @JvmStatic
     fun d(label: String, message: String) {
-        write(LogLevel.DEBUG, label, message)
+        log(LogLevel.DEBUG, label, message)
     }
 
     @JvmStatic
     fun i(label: String, message: String) {
-        write(LogLevel.INFO, label, message)
+        log(LogLevel.INFO, label, message)
     }
 
     @JvmStatic
     fun w(label: String, message: String) {
-        write(LogLevel.WARN, label, message)
+        log(LogLevel.WARN, label, message)
     }
 
     @JvmStatic
     fun e(label: String, message: String) {
-        write(LogLevel.ERROR, label, message)
+        log(LogLevel.ERROR, label, message)
+    }
+
+    // === Internal management ===
+
+    private fun startAutoFlush(intervalMs: Long) {
+        autoFlushJob?.cancel()
+        autoFlushJob = scope.launch {
+            while (isActive) {
+                delay(intervalMs)
+                flush()
+            }
+        }
+    }
+
+    private fun shutdown() {
+        autoFlushJob?.cancel()
+        flush()
+        scope.cancel()
     }
 
     // === Scoped logging ===
 
-    /**
-     * Create a scoped logger with a fixed label
-     */
     @JvmStatic
     fun logger(label: String): ScopedLogger = ScopedLogger(label)
 
-    /**
-     * Scoped logger with fixed label
-     */
     class ScopedLogger internal constructor(private val label: String) {
         fun v(message: String) = Scribe.v(label, message)
         fun d(message: String) = Scribe.d(label, message)
@@ -208,15 +187,11 @@ object Scribe {
         fun e(message: String) = Scribe.e(label, message)
     }
 
-    /**
-     * Custom exception for Scribe errors
-     */
     class ScribeException(message: String) : Exception(message)
 }
 
-/**
- * Extension function for easier usage
- */
+// === Extension function ===
+
 inline fun scribeLogger(label: String, block: Scribe.ScopedLogger.() -> Unit) {
     Scribe.logger(label).block()
 }

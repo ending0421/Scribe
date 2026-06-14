@@ -9,64 +9,100 @@ public enum LogLevel: Int, Sendable {
     case error = 4
 }
 
+/// Scribe configuration
+public struct ScribeConfig: Sendable {
+    public let autoFlushIntervalMs: Int
+    public let enableConsole: Bool
+    public let minConsoleLevel: LogLevel
+    public let maxFileSizeMb: Int
+    public let maxFileCount: Int
+    public let compression: Bool
+    public let encryption: Bool
+
+    public init(
+        autoFlushIntervalMs: Int = 5000,
+        enableConsole: Bool = false,
+        minConsoleLevel: LogLevel = .debug,
+        maxFileSizeMb: Int = 10,
+        maxFileCount: Int = 5,
+        compression: Bool = true,
+        encryption: Bool = false
+    ) {
+        self.autoFlushIntervalMs = autoFlushIntervalMs
+        self.enableConsole = enableConsole
+        self.minConsoleLevel = minConsoleLevel
+        self.maxFileSizeMb = maxFileSizeMb
+        self.maxFileCount = maxFileCount
+        self.compression = compression
+        self.encryption = encryption
+    }
+
+    func toJSON() -> String {
+        """
+        {
+            "auto_flush_interval_ms": \(autoFlushIntervalMs),
+            "enable_console": \(enableConsole),
+            "min_console_level": \(minConsoleLevel.rawValue),
+            "max_file_size_mb": \(maxFileSizeMb),
+            "max_file_count": \(maxFileCount),
+            "compression": \(compression),
+            "encryption": \(encryption)
+        }
+        """
+    }
+}
+
 /// Errors that can occur in Scribe operations
 public enum ScribeError: Error, Sendable {
     case initializationFailed(Int)
-    case writeFailed(Int)
+    case logFailed(Int)
     case flushFailed(Int)
-    case destroyFailed(Int)
-    case registerConsoleFailed(Int)
-    case clearSinksFailed(Int)
 }
 
 /// High-performance logging library for iOS
 ///
-/// Scribe provides Rust-based logging with crash recovery, compression, and encryption support.
+/// Simplified API with automatic management.
 @available(iOS 13.0, macOS 10.15, *)
 public actor Scribe {
 
     private static let shared = Scribe()
     private var isInitialized = false
+    private var autoFlushTask: Task<Void, Never>?
 
     private init() {}
 
-    // MARK: - C FFI Functions
+    // MARK: - C FFI Functions (简化为3个)
 
     @_silgen_name("scribe_init")
-    private static func nativeInit(_ logDir: UnsafePointer<CChar>) -> Int32
+    private static func nativeInit(_ logDir: UnsafePointer<CChar>, _ configJson: UnsafePointer<CChar>) -> Int32
 
-    @_silgen_name("scribe_write")
-    private static func nativeWrite(_ level: Int32, _ label: UnsafePointer<CChar>, _ message: UnsafePointer<CChar>) -> Int32
+    @_silgen_name("scribe_log")
+    private static func nativeLog(_ level: Int32, _ label: UnsafePointer<CChar>, _ message: UnsafePointer<CChar>) -> Int32
 
     @_silgen_name("scribe_flush")
     private static func nativeFlush() -> Int32
 
-    @_silgen_name("scribe_destroy")
-    private static func nativeDestroy() -> Int32
+    @_silgen_name("scribe_get_stats")
+    private static func nativeGetStats() -> UnsafePointer<CChar>?
 
-    @_silgen_name("scribe_register_console")
-    private static func nativeRegisterConsole(_ minLevel: Int32) -> Int32
+    // MARK: - Public API (简化为2个必需 + 2个可选)
 
-    @_silgen_name("scribe_clear_sinks")
-    private static func nativeClearSinks() -> Int32
-
-    @_silgen_name("scribe_sink_count")
-    private static func nativeSinkCount() -> Int32
-
-    // MARK: - Public API
-
-    /// Initialize Scribe with log directory
-    /// - Parameter logDir: Directory path to store log files
+    /// Initialize Scribe with automatic management
+    /// - Parameters:
+    ///   - logDir: Directory path to store log files
+    ///   - config: Configuration (uses defaults if not provided)
     /// - Throws: ScribeError if initialization fails
-    public static func initialize(logDir: String) async throws {
-        try await shared.initializeImpl(logDir: logDir)
+    public static func initialize(logDir: String, config: ScribeConfig = ScribeConfig()) async throws {
+        try await shared.initializeImpl(logDir: logDir, config: config)
     }
 
-    private func initializeImpl(logDir: String) throws {
+    private func initializeImpl(logDir: String, config: ScribeConfig) throws {
         guard !isInitialized else { return }
 
-        let result = logDir.withCString { ptr in
-            Self.nativeInit(ptr)
+        let result = logDir.withCString { logDirPtr in
+            config.toJSON().withCString { configPtr in
+                Self.nativeInit(logDirPtr, configPtr)
+            }
         }
 
         guard result == 0 else {
@@ -74,27 +110,30 @@ public actor Scribe {
         }
 
         isInitialized = true
+
+        // 启动自动刷新
+        startAutoFlush(intervalMs: config.autoFlushIntervalMs)
     }
 
-    /// Write a log message
+    /// Log a message (core API)
     /// - Parameters:
     ///   - level: Log level
     ///   - label: Log label/tag
     ///   - message: Log message
-    /// - Throws: ScribeError if write fails
-    public static func write(level: LogLevel, label: String, message: String) throws {
+    /// - Throws: ScribeError if log fails
+    public static func log(level: LogLevel, label: String, message: String) throws {
         let result = label.withCString { labelPtr in
             message.withCString { messagePtr in
-                nativeWrite(Int32(level.rawValue), labelPtr, messagePtr)
+                nativeLog(Int32(level.rawValue), labelPtr, messagePtr)
             }
         }
 
         guard result == 0 else {
-            throw ScribeError.writeFailed(Int(result))
+            throw ScribeError.logFailed(Int(result))
         }
     }
 
-    /// Flush all buffered logs to disk
+    /// Manual flush (optional, automatic flush is enabled by default)
     /// - Throws: ScribeError if flush fails
     public static func flush() async throws {
         try await shared.flushImpl()
@@ -107,74 +146,54 @@ public actor Scribe {
         }
     }
 
-    /// Destroy and cleanup Scribe
-    /// - Throws: ScribeError if destroy fails
-    public static func destroy() async throws {
-        try await shared.destroyImpl()
-    }
-
-    private func destroyImpl() throws {
-        guard isInitialized else { return }
-
-        let result = Self.nativeDestroy()
-        guard result == 0 else {
-            throw ScribeError.destroyFailed(Int(result))
-        }
-
-        isInitialized = false
-    }
-
-    /// Register a console sink for development
-    /// - Parameter minLevel: Minimum log level
-    /// - Throws: ScribeError if registration fails
-    public static func registerConsole(minLevel: LogLevel) throws {
-        let result = nativeRegisterConsole(Int32(minLevel.rawValue))
-        guard result == 0 else {
-            throw ScribeError.registerConsoleFailed(Int(result))
-        }
-    }
-
-    /// Clear all registered sinks
-    /// - Throws: ScribeError if clear fails
-    public static func clearSinks() throws {
-        let result = nativeClearSinks()
-        guard result == 0 else {
-            throw ScribeError.clearSinksFailed(Int(result))
-        }
-    }
-
-    /// Get the number of registered sinks
-    /// - Returns: Number of sinks
-    public static func sinkCount() -> Int {
-        Int(nativeSinkCount())
+    /// Get performance statistics (optional)
+    /// - Returns: JSON string with statistics
+    public static func getStats() -> String {
+        guard let ptr = nativeGetStats() else { return "{}" }
+        return String(cString: ptr)
     }
 
     // MARK: - Convenience Methods
 
     public static func v(_ label: String, _ message: String) {
-        try? write(level: .verbose, label: label, message: message)
+        try? log(level: .verbose, label: label, message: message)
     }
 
     public static func d(_ label: String, _ message: String) {
-        try? write(level: .debug, label: label, message: message)
+        try? log(level: .debug, label: label, message: message)
     }
 
     public static func i(_ label: String, _ message: String) {
-        try? write(level: .info, label: label, message: message)
+        try? log(level: .info, label: label, message: message)
     }
 
     public static func w(_ label: String, _ message: String) {
-        try? write(level: .warn, label: label, message: message)
+        try? log(level: .warn, label: label, message: message)
     }
 
     public static func e(_ label: String, _ message: String) {
-        try? write(level: .error, label: label, message: message)
+        try? log(level: .error, label: label, message: message)
+    }
+
+    // MARK: - Internal Management
+
+    private func startAutoFlush(intervalMs: Int) {
+        autoFlushTask?.cancel()
+        autoFlushTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(intervalMs))
+                try? await flushImpl()
+            }
+        }
+    }
+
+    deinit {
+        autoFlushTask?.cancel()
     }
 }
 
 // MARK: - Scoped Logger
 
-/// Scoped logger with fixed label
 @available(iOS 13.0, macOS 10.15, *)
 public struct ScopedLogger: Sendable {
     private let label: String
@@ -206,7 +225,6 @@ public struct ScopedLogger: Sendable {
 
 // MARK: - Global Convenience
 
-/// Create a scoped logger
 public func scribeLogger(label: String) -> ScopedLogger {
     ScopedLogger(label: label)
 }
