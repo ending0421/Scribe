@@ -40,11 +40,11 @@ mod context;
 mod sink;
 mod macros;
 
-pub use error::{ScribeError, Result};
-pub use storage::{LogFrame, LogLevel, MmapBuffer, DoubleBufferManager};
+pub use error::{Result, ScribeError};
+pub use storage::{DoubleBufferManager, LogFrame, LogLevel, MmapBuffer};
 pub use config::ScribeConfig;
-pub use metrics::{ScribeMetrics, MetricsSnapshot, ErrorType};
-pub use sink::{LogSink, ConsoleSink, SinkRegistry, register_sink, clear_sinks, registry};
+pub use metrics::{ErrorType, MetricsSnapshot, ScribeMetrics};
+pub use sink::{clear_sinks, registry, register_sink, ConsoleSink, LogSink, SinkRegistry};
 
 static GLOBAL_SCRIBE: OnceCell<Arc<Mutex<ScribeInstance>>> = OnceCell::new();
 static GLOBAL_METRICS: OnceCell<Arc<ScribeMetrics>> = OnceCell::new();
@@ -183,19 +183,21 @@ pub extern "C" fn scribe_init(
 
     // 根据配置注册 ConsoleSink
     if config.enable_console {
-        let console_sink = ConsoleSink::new()
-            .with_min_level(match config.min_console_level {
-                0 => LogLevel::Verbose,
-                1 => LogLevel::Debug,
-                2 => LogLevel::Info,
-                3 => LogLevel::Warn,
-                4 => LogLevel::Error,
-                _ => LogLevel::Debug,
-            });
+        let console_sink = ConsoleSink::new().with_min_level(match config.min_console_level {
+            0 => LogLevel::Verbose,
+            1 => LogLevel::Debug,
+            2 => LogLevel::Info,
+            3 => LogLevel::Warn,
+            4 => LogLevel::Error,
+            _ => LogLevel::Debug,
+        });
         register_sink(Box::new(console_sink));
     }
 
-    let instance = ScribeInstance { manager, config: config.clone() };
+    let instance = ScribeInstance {
+        manager,
+        config: config.clone(),
+    };
 
     if GLOBAL_SCRIBE.set(Arc::new(Mutex::new(instance))).is_err() {
         return -5; // Already initialized

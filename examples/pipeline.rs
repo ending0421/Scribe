@@ -13,9 +13,8 @@ fn main() {
     println!("Original size: {} bytes", batch.size());
 
     // 创建 Pipeline
-    let pipeline = Pipeline::new()
-        .add_stage(Box::new(CompressStage::zstd(3)))
-        // .add_stage(Box::new(EncryptStage::new(&[0u8; 32])));  // 需要密钥
+    let pipeline = Pipeline::new().add_stage(Box::new(CompressStage::zstd(3)));
+    // .add_stage(Box::new(EncryptStage::new(&[0u8; 32])));  // 需要密钥
 
     // 处理数据
     match pipeline.process(batch) {

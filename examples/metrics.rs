@@ -13,10 +13,7 @@
 //! cargo run --example metrics
 //! ```
 
-use scribe::{
-    ScribeMetrics, MetricsSnapshot, ErrorType,
-    DoubleBufferManager, LogFrame, LogLevel,
-};
+use scribe::{DoubleBufferManager, ErrorType, LogFrame, LogLevel, MetricsSnapshot, ScribeMetrics};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 

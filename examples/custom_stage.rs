@@ -69,13 +69,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("3. 准备测试日志数据...\n");
 
     let test_logs = vec![
-        LogFrame::new(LogLevel::Debug, "app".to_string(), "调试信息".to_string()),
-        LogFrame::new(LogLevel::Info, "auth".to_string(), "用户登录成功".to_string()),
-        LogFrame::new(LogLevel::Warn, "security".to_string(), "检测到异常访问".to_string()),
-        LogFrame::new(LogLevel::Error, "payment".to_string(), "支付失败 credit_card=1234-5678".to_string()),
-        LogFrame::new(LogLevel::Error, "api".to_string(), "API 调用失败 token=abc123xyz".to_string()),
-        LogFrame::new(LogLevel::Warn, "database".to_string(), "数据库连接慢".to_string()),
-        LogFrame::new(LogLevel::Error, "auth".to_string(), "登录失败 password=secret123".to_string()),
+        LogFrame::new(
+            LogLevel::Debug,
+            "app".to_string(),
+            "调试信息".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Info,
+            "auth".to_string(),
+            "用户登录成功".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Warn,
+            "security".to_string(),
+            "检测到异常访问".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Error,
+            "payment".to_string(),
+            "支付失败 credit_card=1234-5678".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Error,
+            "api".to_string(),
+            "API 调用失败 token=abc123xyz".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Warn,
+            "database".to_string(),
+            "数据库连接慢".to_string(),
+        ),
+        LogFrame::new(
+            LogLevel::Error,
+            "auth".to_string(),
+            "登录失败 password=secret123".to_string(),
+        ),
     ];
 
     println!("  准备了 {} 条测试日志:", test_logs.len());
@@ -152,8 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 测试 Abort 策略
     println!("  测试 Abort Fallback 策略:");
-    let abort_pipeline = Pipeline::new()
-        .add_stage(Box::new(AbortOnErrorStage));
+    let abort_pipeline = Pipeline::new().add_stage(Box::new(AbortOnErrorStage));
 
     let test_log = LogFrame::new(LogLevel::Error, "test".to_string(), "测试".to_string());
     let batch = LogBatch::new(test_log.serialize()?);
