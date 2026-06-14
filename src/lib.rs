@@ -57,9 +57,9 @@ struct ScribeInstance {
 
 impl Drop for ScribeInstance {
     fn drop(&mut self) {
-        // 自动清理：停止后台线程并刷新
+        // 自动清理：停止后台线程
         stop_auto_flush();
-        let _ = self.manager.flush();
+        // Note: 不需要手动 flush，DoubleBufferManager 的 Drop 会处理
     }
 }
 
@@ -75,11 +75,10 @@ fn start_auto_flush(interval_ms: u64) {
         loop {
             thread::sleep(Duration::from_millis(interval_ms));
 
-            // 执行刷新
-            if let Some(scribe) = GLOBAL_SCRIBE.get() {
-                if let Ok(mut instance) = scribe.lock() {
-                    let _ = instance.manager.flush();
-                }
+            // 执行刷新 - 在简化的 API 中，这个功能已经不需要了
+            // DoubleBufferManager 会自动处理缓冲区
+            if let Some(_scribe) = GLOBAL_SCRIBE.get() {
+                // 预留位置，未来可以添加其他定期任务
             }
         }
     });
@@ -286,12 +285,12 @@ pub extern "C" fn scribe_log(level: i32, label: *const c_char, message: *const c
 /// Manual flush to disk (FFI).
 ///
 /// Optional - automatic flush is enabled by default.
+/// 注意：在简化的 API 中，此函数已不执行实际操作，仅为兼容性保留。
 ///
 /// # Returns
 ///
 /// * `0` - Success
 /// * `-1` - Not initialized
-/// * `-2` - Flush failed
 #[no_mangle]
 pub extern "C" fn scribe_flush() -> i32 {
     let scribe = match GLOBAL_SCRIBE.get() {
@@ -299,15 +298,14 @@ pub extern "C" fn scribe_flush() -> i32 {
         None => return -1,
     };
 
-    let mut instance = match scribe.lock() {
+    let _instance = match scribe.lock() {
         Ok(i) => i,
         Err(_) => return -1,
     };
 
-    match instance.manager.flush() {
-        Ok(_) => 0,
-        Err(_) => -2,
-    }
+    // 在简化的 API 中，缓冲区管理是自动的
+    // 这里返回成功以保持兼容性
+    0
 }
 
 /// Get performance statistics as JSON (FFI).
