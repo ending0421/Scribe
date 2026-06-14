@@ -24,6 +24,7 @@ pub enum Fallback {
 /// let batch = LogBatch::new(vec![1, 2, 3, 4]);
 /// assert_eq!(batch.size(), 4);
 /// ```
+#[derive(Clone)]
 pub struct LogBatch {
     /// The binary log data.
     pub data: Vec<u8>,
@@ -173,21 +174,24 @@ impl Pipeline {
     /// * `Err(ScribeError)` - If a stage aborts the pipeline.
     pub fn process(&self, mut data: LogBatch) -> Result<LogBatch> {
         for stage in &self.stages {
+            let original_data = data.clone(); // 保留原始数据副本
             match stage.process(data) {
                 Ok(result) => {
                     data = result;
                 }
                 Err(e) => {
-                    match stage.on_error(data, e) {
+                    match stage.on_error(original_data.clone(), e) {
                         Fallback::Abort => {
                             return Err(crate::ScribeError::Mmap("Pipeline aborted".to_string()));
                         }
                         Fallback::Skip => {
                             // 跳过这个 Stage，继续使用原数据
+                            data = original_data;
                             continue;
                         }
                         Fallback::Continue => {
                             // 继续使用原数据
+                            data = original_data;
                             continue;
                         }
                     }
