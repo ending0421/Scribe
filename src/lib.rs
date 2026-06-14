@@ -42,7 +42,6 @@ mod macros;
 
 pub use error::{ScribeError, Result};
 pub use storage::{LogFrame, LogLevel, MmapBuffer, DoubleBufferManager};
-pub use config::Config;
 pub use config::ScribeConfig;
 pub use metrics::{ScribeMetrics, MetricsSnapshot, ErrorType};
 pub use sink::{LogSink, ConsoleSink, SinkRegistry, register_sink, clear_sinks, registry};

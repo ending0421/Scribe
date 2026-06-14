@@ -12,13 +12,10 @@
 //! cargo run --example custom_stage
 //! ```
 
-use scribe::{
-    PipelineStage, Pipeline, LogBatch, Result, ScribeError,
-    LogFrame, LogLevel,
-};
-use scribe::pipeline::stage::Fallback;
-use std::sync::Arc;
 use parking_lot::Mutex;
+use scribe::pipeline::stage::Fallback;
+use scribe::{LogBatch, LogFrame, LogLevel, Pipeline, PipelineStage, Result, ScribeError};
+use std::sync::Arc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== 自定义 Pipeline Stage 示例 ===\n");

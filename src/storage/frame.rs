@@ -17,7 +17,7 @@ const MAGIC_HEADER: u32 = 0xFEEDC0DE;
 /// assert_eq!(level as u8, 2);
 /// ```
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LogLevel {
     /// Detailed trace information for debugging.
     Verbose = 0,
