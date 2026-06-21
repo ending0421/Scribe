@@ -15,7 +15,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -23,7 +23,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
@@ -42,13 +42,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -75,7 +75,7 @@ jobs:
           - target: aarch64-linux-android
             arch: arm64-v8a
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -117,7 +117,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: libscribe-${{ matrix.arch }}
           path: target/${{ matrix.target }}/release/libscribe.so
@@ -128,22 +128,22 @@ jobs:
     needs: build-android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Download ARMv7 library
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: libscribe-armeabi-v7a
           path: android/src/main/jniLibs/armeabi-v7a/
 
       - name: Download ARMv8 library
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: libscribe-arm64-v8a
           path: android/src/main/jniLibs/arm64-v8a/
@@ -153,7 +153,7 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Upload AAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: scribe-release.aar
           path: android/build/outputs/aar/scribe-release.aar
@@ -172,7 +172,7 @@ jobs:
           - target: x86_64-apple-ios
             name: ios-simulator-x86_64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -184,7 +184,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: libscribe-${{ matrix.name }}
           path: target/${{ matrix.target }}/release/libscribe.a
@@ -195,22 +195,22 @@ jobs:
     needs: build-ios
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download device library
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: libscribe-ios-device
           path: ios-device
 
       - name: Download simulator arm64 library
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: libscribe-ios-simulator-arm64
           path: ios-simulator-arm64
 
       - name: Download simulator x86_64 library
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: libscribe-ios-simulator-x86_64
           path: ios-simulator-x86_64
@@ -235,7 +235,7 @@ jobs:
         run: zip -r Scribe.xcframework.zip Scribe.xcframework
 
       - name: Upload XCFramework
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Scribe.xcframework
           path: Scribe.xcframework.zip
@@ -248,12 +248,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download AAR
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: scribe-release.aar
 
       - name: Download XCFramework
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: Scribe.xcframework
 
