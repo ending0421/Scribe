@@ -38,8 +38,8 @@ android {
 
     kotlinOptions {
         jvmTarget = "21"
-        languageVersion = "2.4"
-        apiVersion = "2.4"
+        languageVersion = "2.1"
+        apiVersion = "2.1"
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
             "-Xjvm-default=all",
