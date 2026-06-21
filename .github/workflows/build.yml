@@ -3,8 +3,13 @@ name: Build and Test
 on:
   push:
     branches: [ master, main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ master, main ]
+
+permissions:
+  contents: write  # 允许创建 Release
 
 env:
   CARGO_TERM_COLOR: always
