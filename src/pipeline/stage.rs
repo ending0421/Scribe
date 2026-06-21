@@ -1,3 +1,9 @@
+//! Pipeline stage abstractions.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::Result;
 
 /// Fallback strategy when a pipeline stage fails.
@@ -24,6 +30,7 @@ pub enum Fallback {
 /// let batch = LogBatch::new(vec![1, 2, 3, 4]);
 /// assert_eq!(batch.size(), 4);
 /// ```
+#[derive(Clone)]
 pub struct LogBatch {
     /// The binary log data.
     pub data: Vec<u8>,
@@ -100,7 +107,7 @@ pub trait PipelineStage: Send + Sync {
     /// # Returns
     ///
     /// A Fallback strategy indicating how to proceed.
-    fn on_error(&self, data: LogBatch, _error: crate::ScribeError) -> Fallback {
+    fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
         // 默认实现：跳过失败的 Stage
         Fallback::Skip
     }
@@ -173,21 +180,24 @@ impl Pipeline {
     /// * `Err(ScribeError)` - If a stage aborts the pipeline.
     pub fn process(&self, mut data: LogBatch) -> Result<LogBatch> {
         for stage in &self.stages {
+            let original_data = data.clone(); // 保留原始数据副本
             match stage.process(data) {
                 Ok(result) => {
                     data = result;
                 }
                 Err(e) => {
-                    match stage.on_error(data, e) {
+                    match stage.on_error(original_data.clone(), e) {
                         Fallback::Abort => {
                             return Err(crate::ScribeError::Mmap("Pipeline aborted".to_string()));
                         }
                         Fallback::Skip => {
                             // 跳过这个 Stage，继续使用原数据
+                            data = original_data;
                             continue;
                         }
                         Fallback::Continue => {
                             // 继续使用原数据
+                            data = original_data;
                             continue;
                         }
                     }
@@ -245,7 +255,7 @@ mod tests {
             }
         }
 
-        fn on_error(&self, data: LogBatch, error: crate::ScribeError) -> Fallback {
+        fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
             if let Some(ref fallback) = self.fallback {
                 match fallback {
                     Fallback::Abort => Fallback::Abort,

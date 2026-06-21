@@ -7,9 +7,8 @@
 //! - Format string support
 
 use scribe::{
-    scribe_v, scribe_d, scribe_i, scribe_w, scribe_e,
-    scribe_tag_v, scribe_tag_d, scribe_tag_i, scribe_tag_w, scribe_tag_e,
-    tag, tree,
+    scribe_d, scribe_e, scribe_i, scribe_tag_d, scribe_tag_e, scribe_tag_i, scribe_tag_v,
+    scribe_tag_w, scribe_v, scribe_w, tag, tree,
 };
 
 fn main() {
@@ -60,7 +59,12 @@ fn main() {
     println!("5. Explicit tags with format strings:");
     let endpoint = "/api/users";
     let duration_ms = 123;
-    scribe_tag_i!("http", "Request to {} completed in {}ms", endpoint, duration_ms);
+    scribe_tag_i!(
+        "http",
+        "Request to {} completed in {}ms",
+        endpoint,
+        duration_ms
+    );
     scribe_tag_d!("sql", "SELECT * FROM users WHERE id = {}", user_id);
     println!();
 

@@ -1,4 +1,4 @@
-use scribe::{DebugTree, Forest, LogLevel, plant, uproot_all, forest};
+use scribe::{forest, plant, uproot_all, DebugTree, Forest, LogLevel};
 
 struct MainActivity;
 
@@ -26,7 +26,11 @@ impl UserService {
     }
 
     fn update_profile(&self, user_id: u32) {
-        forest().log(LogLevel::Warn, None, &format!("Updating profile for user {}", user_id));
+        forest().log(
+            LogLevel::Warn,
+            None,
+            &format!("Updating profile for user {}", user_id),
+        );
     }
 }
 
@@ -49,7 +53,11 @@ fn main() {
     plant(Box::new(DebugTree::with_min_level(LogLevel::Info)));
 
     forest().log(LogLevel::Verbose, Some("test"), "This will be filtered out");
-    forest().log(LogLevel::Debug, Some("test"), "This will also be filtered out");
+    forest().log(
+        LogLevel::Debug,
+        Some("test"),
+        "This will also be filtered out",
+    );
     forest().log(LogLevel::Info, Some("test"), "This will appear");
     forest().log(LogLevel::Warn, Some("test"), "This will appear");
     forest().log(LogLevel::Error, Some("test"), "This will appear");
@@ -127,11 +135,23 @@ fn main() {
     println!("7. Typical use cases for different log levels:");
     plant(Box::new(DebugTree::new()));
 
-    forest().log(LogLevel::Verbose, Some("App"), "Detailed trace: entering function X");
-    forest().log(LogLevel::Debug, Some("App"), "Debug info: variable value = 42");
+    forest().log(
+        LogLevel::Verbose,
+        Some("App"),
+        "Detailed trace: entering function X",
+    );
+    forest().log(
+        LogLevel::Debug,
+        Some("App"),
+        "Debug info: variable value = 42",
+    );
     forest().log(LogLevel::Info, Some("App"), "User logged in successfully");
     forest().log(LogLevel::Warn, Some("App"), "API rate limit approaching");
-    forest().log(LogLevel::Error, Some("App"), "Failed to save data to database");
+    forest().log(
+        LogLevel::Error,
+        Some("App"),
+        "Failed to save data to database",
+    );
 
     uproot_all();
     println!();
@@ -141,7 +161,11 @@ fn main() {
     let forest = Forest::new();
     forest.plant(Box::new(DebugTree::with_min_level(LogLevel::Warn)));
 
-    forest.log(LogLevel::Info, Some("local"), "This won't appear (below Warn)");
+    forest.log(
+        LogLevel::Info,
+        Some("local"),
+        "This won't appear (below Warn)",
+    );
     forest.log(LogLevel::Warn, Some("local"), "This will appear");
     forest.log(LogLevel::Error, Some("local"), "This will also appear");
 

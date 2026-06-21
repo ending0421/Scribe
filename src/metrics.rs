@@ -76,19 +76,19 @@ impl ScribeMetrics {
         match error_type {
             ErrorType::BufferFull => {
                 self.buffer_full_count.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             ErrorType::DiskFull => {
                 self.disk_full_count.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             ErrorType::Compression => {
                 self.compression_errors.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             ErrorType::Encryption => {
                 self.encryption_errors.fetch_add(1, Ordering::Relaxed);
-            },
+            }
             ErrorType::WriteFailed => {
                 self.writes_failed.fetch_add(1, Ordering::Relaxed);
-            },
+            }
         }
     }
 
@@ -104,12 +104,14 @@ impl ScribeMetrics {
 
     /// 记录压缩耗时（微秒）
     pub fn record_compression_time(&self, microseconds: u64) {
-        self.compression_time_us.fetch_add(microseconds, Ordering::Relaxed);
+        self.compression_time_us
+            .fetch_add(microseconds, Ordering::Relaxed);
     }
 
     /// 记录加密耗时（微秒）
     pub fn record_encryption_time(&self, microseconds: u64) {
-        self.encryption_time_us.fetch_add(microseconds, Ordering::Relaxed);
+        self.encryption_time_us
+            .fetch_add(microseconds, Ordering::Relaxed);
     }
 
     /// 记录 I/O 耗时（微秒）
@@ -120,7 +122,8 @@ impl ScribeMetrics {
     /// 记录清理操作
     pub fn record_cleanup(&self, files_deleted: u64, bytes_freed: u64) {
         self.cleanup_count.fetch_add(1, Ordering::Relaxed);
-        self.files_deleted.fetch_add(files_deleted, Ordering::Relaxed);
+        self.files_deleted
+            .fetch_add(files_deleted, Ordering::Relaxed);
         self.bytes_freed.fetch_add(bytes_freed, Ordering::Relaxed);
     }
 

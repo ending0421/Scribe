@@ -1,4 +1,10 @@
-use super::stage::{Pipeline, LogBatch};
+//! Router for conditional pipeline selection.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
+use super::stage::{LogBatch, Pipeline};
 use crate::storage::LogFrame;
 use crate::Result;
 
@@ -147,8 +153,7 @@ mod tests {
 
     #[test]
     fn test_router_route_adds_route() {
-        let router = Router::new()
-            .route(|frame| frame.level == LogLevel::Error, Pipeline::new());
+        let router = Router::new().route(|frame| frame.level == LogLevel::Error, Pipeline::new());
 
         assert_eq!(router.routes.len(), 1);
     }
@@ -165,19 +170,14 @@ mod tests {
 
     #[test]
     fn test_router_default_sets_default_pipeline() {
-        let router = Router::new()
-            .default(Pipeline::new());
+        let router = Router::new().default(Pipeline::new());
 
         assert!(router.default_pipeline.is_some());
     }
 
     #[test]
     fn test_router_single_condition_match() {
-        let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                Pipeline::new(),
-            );
+        let router = Router::new().route(|frame| frame.level == LogLevel::Error, Pipeline::new());
 
         let frame = LogFrame::new(LogLevel::Error, "test".to_string(), "error".to_string());
         let batch = LogBatch::new(vec![1, 2, 3]);
@@ -189,14 +189,8 @@ mod tests {
     #[test]
     fn test_router_multiple_conditions_first_match_wins() {
         let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.tag == "test",
-                Pipeline::new(),
-            )
+            .route(|frame| frame.level == LogLevel::Error, Pipeline::new())
+            .route(|frame| frame.tag == "test", Pipeline::new())
             .route(
                 |frame| frame.level == LogLevel::Error && frame.tag == "test",
                 Pipeline::new(),
@@ -214,10 +208,7 @@ mod tests {
     #[test]
     fn test_router_no_match_uses_default() {
         let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                Pipeline::new(),
-            )
+            .route(|frame| frame.level == LogLevel::Error, Pipeline::new())
             .default(Pipeline::new());
 
         // Info 级别不匹配 Error 条件
@@ -230,11 +221,7 @@ mod tests {
 
     #[test]
     fn test_router_no_match_no_default_returns_original_batch() {
-        let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                Pipeline::new(),
-            );
+        let router = Router::new().route(|frame| frame.level == LogLevel::Error, Pipeline::new());
 
         // Info 级别不匹配，且没有 default
         let frame = LogFrame::new(LogLevel::Info, "test".to_string(), "info".to_string());
@@ -244,7 +231,7 @@ mod tests {
         assert!(result.is_ok());
         // 验证返回原始 batch
         let output = result.unwrap();
-        assert_eq!(output.ids.len(), 3);
+        assert_eq!(output.data.len(), 3);
     }
 
     #[test]
@@ -258,19 +245,24 @@ mod tests {
                 |frame| frame.level == LogLevel::Warn && frame.tag.starts_with("auth"),
                 Pipeline::new(),
             )
-            .route(
-                |frame| frame.level == LogLevel::Info,
-                Pipeline::new(),
-            )
+            .route(|frame| frame.level == LogLevel::Info, Pipeline::new())
             .default(Pipeline::new());
 
         // 测试第一个条件匹配
-        let frame1 = LogFrame::new(LogLevel::Error, "network".to_string(), "connection failed".to_string());
+        let frame1 = LogFrame::new(
+            LogLevel::Error,
+            "network".to_string(),
+            "connection failed".to_string(),
+        );
         let batch1 = LogBatch::new(vec![1]);
         assert!(router.dispatch(&frame1, batch1).is_ok());
 
         // 测试第二个条件匹配
-        let frame2 = LogFrame::new(LogLevel::Warn, "auth_service".to_string(), "token expired".to_string());
+        let frame2 = LogFrame::new(
+            LogLevel::Warn,
+            "auth_service".to_string(),
+            "token expired".to_string(),
+        );
         let batch2 = LogBatch::new(vec![2]);
         assert!(router.dispatch(&frame2, batch2).is_ok());
 
@@ -288,34 +280,28 @@ mod tests {
     #[test]
     fn test_router_with_empty_pipeline() {
         let empty_pipeline = Pipeline::new();
-        let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                empty_pipeline,
-            );
+        let router = Router::new().route(|frame| frame.level == LogLevel::Error, empty_pipeline);
 
         let frame = LogFrame::new(LogLevel::Error, "test".to_string(), "error".to_string());
         let batch = LogBatch::new(vec![]);
 
         let result = router.dispatch(&frame, batch);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().ids.len(), 0);
+        assert_eq!(result.unwrap().data.len(), 0);
     }
 
     #[test]
     fn test_router_tag_based_routing() {
         let router = Router::new()
-            .route(
-                |frame| frame.tag == "database",
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.tag == "network",
-                Pipeline::new(),
-            )
+            .route(|frame| frame.tag == "database", Pipeline::new())
+            .route(|frame| frame.tag == "network", Pipeline::new())
             .default(Pipeline::new());
 
-        let frame = LogFrame::new(LogLevel::Info, "database".to_string(), "query executed".to_string());
+        let frame = LogFrame::new(
+            LogLevel::Info,
+            "database".to_string(),
+            "query executed".to_string(),
+        );
         let batch = LogBatch::new(vec![1, 2]);
 
         let result = router.dispatch(&frame, batch);
@@ -325,29 +311,20 @@ mod tests {
     #[test]
     fn test_router_level_hierarchy() {
         let router = Router::new()
-            .route(
-                |frame| frame.level == LogLevel::Verbose,
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.level == LogLevel::Debug,
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.level == LogLevel::Info,
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.level == LogLevel::Warn,
-                Pipeline::new(),
-            )
-            .route(
-                |frame| frame.level == LogLevel::Error,
-                Pipeline::new(),
-            );
+            .route(|frame| frame.level == LogLevel::Verbose, Pipeline::new())
+            .route(|frame| frame.level == LogLevel::Debug, Pipeline::new())
+            .route(|frame| frame.level == LogLevel::Info, Pipeline::new())
+            .route(|frame| frame.level == LogLevel::Warn, Pipeline::new())
+            .route(|frame| frame.level == LogLevel::Error, Pipeline::new());
 
         // 测试每个级别
-        for level in [LogLevel::Verbose, LogLevel::Debug, LogLevel::Info, LogLevel::Warn, LogLevel::Error] {
+        for level in [
+            LogLevel::Verbose,
+            LogLevel::Debug,
+            LogLevel::Info,
+            LogLevel::Warn,
+            LogLevel::Error,
+        ] {
             let frame = LogFrame::new(level, "test".to_string(), "message".to_string());
             let batch = LogBatch::new(vec![1]);
             assert!(router.dispatch(&frame, batch).is_ok());
@@ -357,13 +334,14 @@ mod tests {
     #[test]
     fn test_router_message_content_condition() {
         let router = Router::new()
-            .route(
-                |frame| frame.message.contains("critical"),
-                Pipeline::new(),
-            )
+            .route(|frame| frame.message.contains("critical"), Pipeline::new())
             .default(Pipeline::new());
 
-        let frame = LogFrame::new(LogLevel::Error, "app".to_string(), "critical system failure".to_string());
+        let frame = LogFrame::new(
+            LogLevel::Error,
+            "app".to_string(),
+            "critical system failure".to_string(),
+        );
         let batch = LogBatch::new(vec![1]);
 
         let result = router.dispatch(&frame, batch);

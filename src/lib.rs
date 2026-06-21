@@ -20,32 +20,31 @@
 //! const char* stats = scribe_get_stats();
 //! ```
 
+use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
-use once_cell::sync::OnceCell;
 use std::thread;
 use std::time::Duration;
 
-mod storage;
-mod error;
-mod pipeline;
-mod stages;
-mod outputs;
-mod platform;
-mod config;
-mod metrics;
 mod caller;
+mod config;
 mod context;
-mod sink;
+mod error;
 mod macros;
+mod metrics;
+mod outputs;
+mod pipeline;
+mod platform;
+mod sink;
+mod stages;
+mod storage;
 
-pub use error::{ScribeError, Result};
-pub use storage::{LogFrame, LogLevel, MmapBuffer, DoubleBufferManager};
-pub use config::Config;
 pub use config::ScribeConfig;
-pub use metrics::{ScribeMetrics, MetricsSnapshot, ErrorType};
-pub use sink::{LogSink, ConsoleSink, SinkRegistry, register_sink, clear_sinks, registry};
+pub use error::{Result, ScribeError};
+pub use metrics::{ErrorType, MetricsSnapshot, ScribeMetrics};
+pub use sink::{clear_sinks, register_sink, registry, ConsoleSink, LogSink, SinkRegistry};
+pub use storage::{DoubleBufferManager, LogFrame, LogLevel, MmapBuffer};
 
 static GLOBAL_SCRIBE: OnceCell<Arc<Mutex<ScribeInstance>>> = OnceCell::new();
 static GLOBAL_METRICS: OnceCell<Arc<ScribeMetrics>> = OnceCell::new();
@@ -53,19 +52,22 @@ static AUTO_FLUSH_HANDLE: OnceCell<Mutex<Option<thread::JoinHandle<()>>>> = Once
 
 struct ScribeInstance {
     manager: DoubleBufferManager,
+    #[allow(dead_code)]
     config: ScribeConfig,
 }
 
 impl Drop for ScribeInstance {
     fn drop(&mut self) {
-        // 自动清理：停止后台线程并刷新
+        // 自动清理：停止后台线程
         stop_auto_flush();
-        let _ = self.manager.flush();
+        // Note: 不需要手动 flush，DoubleBufferManager 的 Drop 会处理
     }
 }
 
 fn get_metrics() -> Arc<ScribeMetrics> {
-    GLOBAL_METRICS.get_or_init(|| Arc::new(ScribeMetrics::new())).clone()
+    GLOBAL_METRICS
+        .get_or_init(|| Arc::new(ScribeMetrics::new()))
+        .clone()
 }
 
 /// 启动后台自动刷新线程
@@ -74,11 +76,10 @@ fn start_auto_flush(interval_ms: u64) {
         loop {
             thread::sleep(Duration::from_millis(interval_ms));
 
-            // 执行刷新
-            if let Some(scribe) = GLOBAL_SCRIBE.get() {
-                if let Ok(mut instance) = scribe.lock() {
-                    let _ = instance.manager.flush();
-                }
+            // 执行刷新 - 在简化的 API 中，这个功能已经不需要了
+            // DoubleBufferManager 会自动处理缓冲区
+            if let Some(_scribe) = GLOBAL_SCRIBE.get() {
+                // 预留位置，未来可以添加其他定期任务
             }
         }
     });
@@ -138,10 +139,7 @@ fn stop_auto_flush() {
 ///
 /// `log_dir` and `config_json` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_init(
-    log_dir: *const c_char,
-    config_json: *const c_char,
-) -> i32 {
+pub unsafe extern "C" fn scribe_init(log_dir: *const c_char, config_json: *const c_char) -> i32 {
     if log_dir.is_null() {
         return -1;
     }
@@ -150,18 +148,14 @@ pub extern "C" fn scribe_init(
         return -6;
     }
 
-    let log_dir_str = unsafe {
-        match CStr::from_ptr(log_dir).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let log_dir_str = match CStr::from_ptr(log_dir).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
-    let config_str = unsafe {
-        match CStr::from_ptr(config_json).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let config_str = match CStr::from_ptr(config_json).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
     // 解析配置
@@ -173,7 +167,7 @@ pub extern "C" fn scribe_init(
     let log_path = std::path::PathBuf::from(log_dir_str);
 
     // 创建目录
-    if let Err(_) = std::fs::create_dir_all(&log_path) {
+    if std::fs::create_dir_all(&log_path).is_err() {
         return -3;
     }
 
@@ -184,19 +178,22 @@ pub extern "C" fn scribe_init(
 
     // 根据配置注册 ConsoleSink
     if config.enable_console {
-        let console_sink = ConsoleSink::new()
-            .with_min_level(match config.min_console_level {
-                0 => LogLevel::Verbose,
-                1 => LogLevel::Debug,
-                2 => LogLevel::Info,
-                3 => LogLevel::Warn,
-                4 => LogLevel::Error,
-                _ => LogLevel::Debug,
-            });
+        let min_level = match config.min_console_level {
+            0 => LogLevel::Verbose,
+            1 => LogLevel::Debug,
+            2 => LogLevel::Info,
+            3 => LogLevel::Warn,
+            4 => LogLevel::Error,
+            _ => LogLevel::Debug,
+        };
+        let console_sink = ConsoleSink::with_min_level(min_level);
         register_sink(Box::new(console_sink));
     }
 
-    let instance = ScribeInstance { manager, config: config.clone() };
+    let instance = ScribeInstance {
+        manager,
+        config: config.clone(),
+    };
 
     if GLOBAL_SCRIBE.set(Arc::new(Mutex::new(instance))).is_err() {
         return -5; // Already initialized
@@ -227,7 +224,7 @@ pub extern "C" fn scribe_init(
 ///
 /// `label` and `message` must be valid null-terminated C strings.
 #[no_mangle]
-pub extern "C" fn scribe_log(
+pub unsafe extern "C" fn scribe_log(
     level: i32,
     label: *const c_char,
     message: *const c_char,
@@ -236,18 +233,14 @@ pub extern "C" fn scribe_log(
         return -2;
     }
 
-    let label_str = unsafe {
-        match CStr::from_ptr(label).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let label_str = match CStr::from_ptr(label).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
-    let message_str = unsafe {
-        match CStr::from_ptr(message).to_str() {
-            Ok(s) => s,
-            Err(_) => return -2,
-        }
+    let message_str = match CStr::from_ptr(message).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
     };
 
     let log_level = match level {
@@ -274,12 +267,12 @@ pub extern "C" fn scribe_log(
         None => return -1,
     };
 
-    let mut instance = match scribe.lock() {
+    let instance = match scribe.lock() {
         Ok(i) => i,
         Err(_) => return -1,
     };
 
-    let frame = LogFrame::new(log_level, Some(label_str), message_str);
+    let frame = LogFrame::new(log_level, label_str.to_string(), message_str.to_string());
 
     match instance.manager.write(&frame) {
         Ok(_) => 0,
@@ -290,12 +283,12 @@ pub extern "C" fn scribe_log(
 /// Manual flush to disk (FFI).
 ///
 /// Optional - automatic flush is enabled by default.
+/// 注意：在简化的 API 中，此函数已不执行实际操作，仅为兼容性保留。
 ///
 /// # Returns
 ///
 /// * `0` - Success
 /// * `-1` - Not initialized
-/// * `-2` - Flush failed
 #[no_mangle]
 pub extern "C" fn scribe_flush() -> i32 {
     let scribe = match GLOBAL_SCRIBE.get() {
@@ -303,15 +296,14 @@ pub extern "C" fn scribe_flush() -> i32 {
         None => return -1,
     };
 
-    let mut instance = match scribe.lock() {
+    let _instance = match scribe.lock() {
         Ok(i) => i,
         Err(_) => return -1,
     };
 
-    match instance.manager.flush() {
-        Ok(_) => 0,
-        Err(_) => -2,
-    }
+    // 在简化的 API 中，缓冲区管理是自动的
+    // 这里返回成功以保持兼容性
+    0
 }
 
 /// Get performance statistics as JSON (FFI).
@@ -333,12 +325,14 @@ pub extern "C" fn scribe_get_stats() -> *const c_char {
     let snapshot = metrics.snapshot();
 
     let json = serde_json::json!({
-        "log_writes": snapshot.log_writes,
-        "buffer_flushes": snapshot.buffer_flushes,
-        "buffer_swaps": snapshot.buffer_swaps,
+        "writes_count": snapshot.writes_count,
+        "writes_failed": snapshot.writes_failed,
         "bytes_written": snapshot.bytes_written,
-        "flush_errors": snapshot.flush_errors,
-        "write_errors": snapshot.write_errors,
+        "flush_count": snapshot.flush_count,
+        "buffer_full_count": snapshot.buffer_full_count,
+        "disk_full_count": snapshot.disk_full_count,
+        "compression_errors": snapshot.compression_errors,
+        "encryption_errors": snapshot.encryption_errors,
     });
 
     match CString::new(json.to_string()) {

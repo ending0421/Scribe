@@ -1,6 +1,6 @@
 //! Pipeline 使用示例
 
-use scribe::pipeline::{Pipeline, LogBatch};
+use scribe::pipeline::{LogBatch, Pipeline};
 use scribe::stages::{CompressStage, EncryptStage};
 
 fn main() {
@@ -13,16 +13,17 @@ fn main() {
     println!("Original size: {} bytes", batch.size());
 
     // 创建 Pipeline
-    let pipeline = Pipeline::new()
-        .add_stage(Box::new(CompressStage::zstd(3)))
-        // .add_stage(Box::new(EncryptStage::new(&[0u8; 32])));  // 需要密钥
+    let pipeline = Pipeline::new().add_stage(Box::new(CompressStage::zstd(3)));
+    // .add_stage(Box::new(EncryptStage::new(&[0u8; 32])));  // 需要密钥
 
     // 处理数据
     match pipeline.process(batch) {
         Ok(result) => {
             println!("Processed size: {} bytes", result.size());
-            println!("Compression ratio: {:.2}x",
-                     data.len() as f32 / result.size() as f32);
+            println!(
+                "Compression ratio: {:.2}x",
+                data.len() as f32 / result.size() as f32
+            );
         }
         Err(e) => {
             eprintln!("Pipeline error: {}", e);

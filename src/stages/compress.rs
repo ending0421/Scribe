@@ -1,4 +1,10 @@
-use crate::pipeline::{PipelineStage, LogBatch, Fallback};
+//! Compression stage for log data.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
+use crate::pipeline::{Fallback, LogBatch, PipelineStage};
 use crate::Result;
 
 pub struct CompressStage {
@@ -27,7 +33,7 @@ impl PipelineStage for CompressStage {
         }
     }
 
-    fn on_error(&self, data: LogBatch, _error: crate::ScribeError) -> Fallback {
+    fn on_error(&self, _data: LogBatch, _error: crate::ScribeError) -> Fallback {
         // 压缩失败时跳过，使用原始数据
         Fallback::Skip
     }

@@ -32,11 +32,21 @@ pub struct ScribeConfig {
     pub encryption: bool,
 }
 
-fn default_auto_flush_interval() -> u64 { 5000 }
-fn default_min_console_level() -> i32 { 1 }
-fn default_max_file_size() -> usize { 10 }
-fn default_max_file_count() -> usize { 5 }
-fn default_compression() -> bool { true }
+fn default_auto_flush_interval() -> u64 {
+    5000
+}
+fn default_min_console_level() -> i32 {
+    1
+}
+fn default_max_file_size() -> usize {
+    10
+}
+fn default_max_file_count() -> usize {
+    5
+}
+fn default_compression() -> bool {
+    true
+}
 
 impl Default for ScribeConfig {
     fn default() -> Self {

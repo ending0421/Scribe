@@ -25,8 +25,7 @@
 //!     .default(Pipeline::new());
 //! ```
 
-pub mod stage;
 pub mod router;
+pub mod stage;
 
-pub use stage::{PipelineStage, Fallback, LogBatch};
-pub use router::Router;
+pub use stage::{Fallback, LogBatch, PipelineStage};

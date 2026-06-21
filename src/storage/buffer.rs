@@ -36,6 +36,7 @@ pub struct MmapBuffer {
     mmap: MmapMut,
     position: AtomicUsize,
     capacity: usize,
+    #[allow(dead_code)]
     file_path: PathBuf,
 }
 
@@ -69,6 +70,7 @@ impl MmapBuffer {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&file_path)?;
 
         // 设置文件大小
@@ -76,8 +78,7 @@ impl MmapBuffer {
 
         // 创建 mmap
         let mmap = unsafe {
-            MmapMut::map_mut(&file)
-                .map_err(|e| crate::ScribeError::Mmap(e.to_string()))?
+            MmapMut::map_mut(&file).map_err(|e| crate::ScribeError::Mmap(e.to_string()))?
         };
 
         Ok(Self {
@@ -414,7 +415,7 @@ mod tests {
 
         assert!(result.is_err());
         match result {
-            Err(crate::ScribeError::BufferFull) => {},
+            Err(crate::ScribeError::BufferFull) => {}
             _ => panic!("Expected BufferFull error"),
         }
 

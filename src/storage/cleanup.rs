@@ -1,8 +1,14 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+//! Cleanup policies for old log files.
+//!
+//! This module is kept for completeness but currently unused in the simplified FFI API.
+
+#![allow(dead_code)]
+
 use crate::storage::LogLevel;
 use crate::Result;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::time::SystemTime;
 
 /// Policy for cleaning up old log files.
 ///
@@ -53,8 +59,8 @@ impl Default for CleanupPolicy {
         level_retention.insert(LogLevel::Error, 30);
 
         Self {
-            max_total_size: 50 * 1024 * 1024,  // 50MB
-            max_file_size: 10 * 1024 * 1024,   // 10MB
+            max_total_size: 50 * 1024 * 1024, // 50MB
+            max_file_size: 10 * 1024 * 1024,  // 10MB
             retention_days: 7,
             level_retention,
             cleanup_threshold: 0.9,
@@ -161,19 +167,23 @@ impl CleanupPolicy {
 
         // 第一步：删除超过保留期的文件
         for file in files {
-            if self.should_delete_by_time(file) {
-                if let Ok(_) = std::fs::remove_file(&file.path) {
-                    report.files_deleted += 1;
-                    report.bytes_freed += file.size as u64;
-                    report.deleted_files.push(file.path.to_string_lossy().to_string());
-                }
+            if self.should_delete_by_time(file) && std::fs::remove_file(&file.path).is_ok() {
+                report.files_deleted += 1;
+                report.bytes_freed += file.size as u64;
+                report
+                    .deleted_files
+                    .push(file.path.to_string_lossy().to_string());
             }
         }
 
         // 第二步：如果超过大小限制，按优先级删除
         let remaining_files: Vec<_> = files
             .iter()
-            .filter(|f| !report.deleted_files.contains(&f.path.to_string_lossy().to_string()))
+            .filter(|f| {
+                !report
+                    .deleted_files
+                    .contains(&f.path.to_string_lossy().to_string())
+            })
             .collect();
 
         let total_size: usize = remaining_files.iter().map(|f| f.size).sum();
@@ -190,10 +200,12 @@ impl CleanupPolicy {
                     break;
                 }
 
-                if let Ok(_) = std::fs::remove_file(&file.path) {
+                if std::fs::remove_file(&file.path).is_ok() {
                     report.files_deleted += 1;
                     report.bytes_freed += file.size as u64;
-                    report.deleted_files.push(file.path.to_string_lossy().to_string());
+                    report
+                        .deleted_files
+                        .push(file.path.to_string_lossy().to_string());
                     current_size -= file.size;
                 }
             }
@@ -204,7 +216,8 @@ impl CleanupPolicy {
 
     fn should_delete_by_time(&self, file: &LogFile) -> bool {
         let age = file.age_days();
-        let retention = self.level_retention
+        let retention = self
+            .level_retention
             .get(&file.min_level)
             .unwrap_or(&self.retention_days);
 
@@ -229,9 +242,10 @@ impl CleanupPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
     use std::fs;
     use std::io::Write;
+    use std::path::Path;
+    use std::time::Duration;
 
     // Helper function to create a test file
     fn create_test_file(path: &Path, content: &str) -> Result<()> {
@@ -339,7 +353,7 @@ mod tests {
                 path: old_file_path.clone(),
                 size: 1024,
                 created_at: SystemTime::now() - Duration::from_secs(30 * 86400), // 30 days old
-                min_level: LogLevel::Debug, // Debug 保留 1 天
+                min_level: LogLevel::Debug,                                      // Debug 保留 1 天
             },
             LogFile {
                 path: new_file_path.clone(),
@@ -465,14 +479,12 @@ mod tests {
         let policy = CleanupPolicy::default();
 
         // 使用不存在的文件路径
-        let files = vec![
-            LogFile {
-                path: PathBuf::from("/nonexistent/path/file.log"),
-                size: 1024,
-                created_at: SystemTime::now() - Duration::from_secs(30 * 86400),
-                min_level: LogLevel::Debug,
-            },
-        ];
+        let files = vec![LogFile {
+            path: PathBuf::from("/nonexistent/path/file.log"),
+            size: 1024,
+            created_at: SystemTime::now() - Duration::from_secs(30 * 86400),
+            min_level: LogLevel::Debug,
+        }];
 
         let report = policy.cleanup(&files).unwrap();
 
@@ -727,14 +739,12 @@ mod tests {
             cleanup_threshold: 0.9,
         };
 
-        let files = vec![
-            LogFile {
-                path: PathBuf::from("keep.log"),
-                size: 1024,
-                created_at: SystemTime::now(),
-                min_level: LogLevel::Info,
-            },
-        ];
+        let files = vec![LogFile {
+            path: PathBuf::from("keep.log"),
+            size: 1024,
+            created_at: SystemTime::now(),
+            min_level: LogLevel::Info,
+        }];
 
         let report = policy.cleanup(&files).unwrap();
 

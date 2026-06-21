@@ -1,5 +1,5 @@
 use super::buffer::MmapBuffer;
-use crossbeam_channel::{bounded, Sender, Receiver};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -181,7 +181,7 @@ impl DoubleBufferManager {
     pub fn swap_buffers(&self) -> crate::Result<()> {
         // 原子交换 active_index
         let old_idx = self.active_index.fetch_xor(1, Ordering::AcqRel);
-        let new_idx = old_idx ^ 1;
+        let _new_idx = old_idx ^ 1;
 
         // 自旋等待旧 buffer 的所有写入者完成
         while self.active_writers[old_idx as usize].load(Ordering::Acquire) > 0 {
@@ -247,14 +247,38 @@ impl DoubleBufferManager {
         self.worker_handle = Some(handle);
         Ok(())
     }
+
+    /// Writes a LogFrame to the active buffer.
+    ///
+    /// This is a high-level convenience method that serializes the frame
+    /// and writes it to the currently active buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame` - The LogFrame to write
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Successfully written
+    /// * `Err(ScribeError)` - If serialization or write fails
+    pub fn write(&self, frame: &crate::storage::LogFrame) -> crate::Result<()> {
+        let data = frame.serialize()?;
+        let (buffer, idx) = self.get_active_buffer();
+
+        self.increment_active_writers(idx);
+        let result = buffer.write(&data);
+        self.decrement_active_writers(idx);
+
+        result.map(|_| ())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::sync::Barrier;
     use std::time::Duration;
+    use tempfile::TempDir;
 
     #[test]
     fn test_double_buffer_swap() {
@@ -516,10 +540,12 @@ mod tests {
         let processed_clone = processed.clone();
 
         // 生成 worker 线程，计数处理的 buffer
-        manager.spawn_worker(move |data| {
-            processed_clone.fetch_add(data.len(), Ordering::SeqCst);
-            Ok(())
-        }).unwrap();
+        manager
+            .spawn_worker(move |data| {
+                processed_clone.fetch_add(data.len(), Ordering::SeqCst);
+                Ok(())
+            })
+            .unwrap();
 
         // 写入数据到 buffer 0
         let (buffer, _) = manager.get_active_buffer();
@@ -546,10 +572,12 @@ mod tests {
         let error_count_clone = error_count.clone();
 
         // 生成总是失败的 worker
-        manager.spawn_worker(move |_data| {
-            error_count_clone.fetch_add(1, Ordering::SeqCst);
-            Err(crate::ScribeError::Mmap("Simulated error".to_string()))
-        }).unwrap();
+        manager
+            .spawn_worker(move |_data| {
+                error_count_clone.fetch_add(1, Ordering::SeqCst);
+                Err(crate::ScribeError::Mmap("Simulated error".to_string()))
+            })
+            .unwrap();
 
         // 写入数据并交换
         let (buffer, _) = manager.get_active_buffer();
@@ -576,11 +604,13 @@ mod tests {
         let process_count = Arc::new(AtomicUsize::new(0));
         let process_count_clone = process_count.clone();
 
-        manager.spawn_worker(move |_data| {
-            process_count_clone.fetch_add(1, Ordering::SeqCst);
-            thread::sleep(Duration::from_millis(50)); // 模拟处理时间
-            Ok(())
-        }).unwrap();
+        manager
+            .spawn_worker(move |_data| {
+                process_count_clone.fetch_add(1, Ordering::SeqCst);
+                thread::sleep(Duration::from_millis(50)); // 模拟处理时间
+                Ok(())
+            })
+            .unwrap();
 
         // 快速交换多次
         for i in 0..5 {
