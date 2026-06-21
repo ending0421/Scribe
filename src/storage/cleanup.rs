@@ -405,7 +405,7 @@ mod tests {
             LogFile {
                 path: file2_path.clone(),
                 size: 80, // 大文件，新文件
-                created_at: SystemTime::now() - Duration::from_secs(1 * 86400),
+                created_at: SystemTime::now() - Duration::from_secs(86400),
                 min_level: LogLevel::Debug,
             },
         ];
@@ -555,7 +555,7 @@ mod tests {
         let new_file = LogFile {
             path: PathBuf::from("new.log"),
             size: 1024,
-            created_at: SystemTime::now() - Duration::from_secs(1 * 86400), // 1 day
+            created_at: SystemTime::now() - Duration::from_secs(86400), // 1 day
             min_level: LogLevel::Info,
         };
 
@@ -708,7 +708,7 @@ mod tests {
             LogFile {
                 path: file2_path.clone(),
                 size: 5,
-                created_at: SystemTime::now() - Duration::from_secs(1 * 86400),
+                created_at: SystemTime::now() - Duration::from_secs(86400),
                 min_level: LogLevel::Info,
             },
         ];

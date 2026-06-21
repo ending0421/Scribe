@@ -143,15 +143,16 @@ mod tests {
     #[test]
     fn test_result_type_alias_ok() {
         let result: Result<i32> = Ok(42);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 42);
+        assert_eq!(result.ok(), Some(42));
     }
 
     #[test]
     fn test_result_type_alias_err() {
         let result: Result<i32> = Err(ScribeError::DiskFull);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Disk full");
+        if let Err(e) = result {
+            assert_eq!(e.to_string(), "Disk full");
+        }
     }
 
     #[test]
