@@ -20,9 +20,11 @@
   19             dependencies: ["ScribeFFI"],
   20             path: "Sources/Scribe"
   21         ),
-  22         .binaryTarget(
-  23             name: "ScribeFFI",
-  24             path: "Scribe.xcframework"
-  25         ),
-  26     ]
-  27 )
+  22         // 本地开发时使用本地路径
+  23         // 发布后，在 GitHub 上会指向 Release 的 URL
+  24         .binaryTarget(
+  25             name: "ScribeFFI",
+  26             path: "Scribe.xcframework"
+  27         ),
+  28     ]
+  29 )
