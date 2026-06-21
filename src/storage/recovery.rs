@@ -478,7 +478,7 @@ mod tests {
         }
 
         // 写入损坏数据
-        file.write_all(&vec![0xFF; 100]).unwrap();
+        file.write_all(&[0xFF; 100]).unwrap();
 
         drop(file);
 
@@ -542,7 +542,7 @@ mod tests {
         let invalid_length = (2 * 1024 * 1024u32).to_le_bytes(); // 2MB，超过限制
         file.write_all(&magic_bytes).unwrap();
         file.write_all(&invalid_length).unwrap();
-        file.write_all(&vec![0u8; 100]).unwrap();
+        file.write_all(&[0u8; 100]).unwrap();
 
         // 写入另一个有效帧
         let frame2 = create_test_frame(LogLevel::Debug, "test", "another_valid");
