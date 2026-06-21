@@ -121,6 +121,7 @@ jobs:
         with:
           name: libscribe-${{ matrix.arch }}
           path: target/${{ matrix.target }}/release/libscribe.so
+          retention-days: 1  # 中间构件，1天后自动删除
 
   # 构建 Android AAR
   build-android-aar:
@@ -188,6 +189,7 @@ jobs:
         with:
           name: libscribe-${{ matrix.name }}
           path: target/${{ matrix.target }}/release/libscribe.a
+          retention-days: 1  # 中间构件，1天后自动删除
 
   # 创建 iOS XCFramework
   build-ios-xcframework:
